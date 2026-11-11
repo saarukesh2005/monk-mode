@@ -1,0 +1,16 @@
+{
+  "description": "Schedule window vectors. 'at' is a local wall-clock time. 2026-11-09 is a Monday. daysMask bit0=Mon..bit6=Sun.",
+  "cases": [
+    { "name": "weekday work hours inside", "daysMask": 31, "startMinute": 540, "endMinute": 1020, "at": "2026-11-09T10:00", "expected": true },
+    { "name": "weekday work hours at start", "daysMask": 31, "startMinute": 540, "endMinute": 1020, "at": "2026-11-09T09:00", "expected": true },
+    { "name": "weekday work hours at end (exclusive)", "daysMask": 31, "startMinute": 540, "endMinute": 1020, "at": "2026-11-09T17:00", "expected": false },
+    { "name": "weekday work hours on Saturday", "daysMask": 31, "startMinute": 540, "endMinute": 1020, "at": "2026-11-14T10:00", "expected": false },
+    { "name": "overnight before midnight", "daysMask": 1, "startMinute": 1320, "endMinute": 360, "at": "2026-11-09T23:30", "expected": true },
+    { "name": "overnight after midnight belongs to previous day", "daysMask": 1, "startMinute": 1320, "endMinute": 360, "at": "2026-11-10T05:59", "expected": true },
+    { "name": "overnight after window end", "daysMask": 1, "startMinute": 1320, "endMinute": 360, "at": "2026-11-10T06:00", "expected": false },
+    { "name": "overnight Tuesday evening not selected", "daysMask": 1, "startMinute": 1320, "endMinute": 360, "at": "2026-11-10T23:00", "expected": false },
+    { "name": "Sunday overnight wraps into Monday", "daysMask": 64, "startMinute": 1380, "endMinute": 120, "at": "2026-11-09T01:00", "expected": true },
+    { "name": "all-day window", "daysMask": 96, "startMinute": 0, "endMinute": 0, "at": "2026-11-15T13:37", "expected": true },
+    { "name": "all-day window wrong day", "daysMask": 96, "startMinute": 0, "endMinute": 0, "at": "2026-11-10T13:37", "expected": false }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@monk/shared-types": ["../../packages/shared-types/src/index.ts"],
+      "@monk/shared-core": ["../../packages/shared-core/src/index.ts"],
+      "@monk/analytics": ["../../packages/analytics/src/index.ts"],
+      "@monk/validation": ["../../packages/validation/src/index.ts"],
+      "@monk/design-system": ["../../packages/design-system/src/index.ts"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": ["src", "tests"]
+}

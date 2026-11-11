@@ -1,0 +1,24 @@
+node_modules/
+dist/
+build/
+target/
+*.log
+.DS_Store
+coverage/
+.env
+.env.local
+# Android
+apps/android/.gradle/
+apps/android/build/
+apps/android/**/build/
+apps/android/local.properties
+apps/android/.idea/
+*.iml
+*.keystore
+*.jks
+# Extensions build output
+extensions/browser-chromium/dist/
+extensions/browser-firefox/dist/
+artifacts/
+.kotlin/
+apps/android/.kotlin/

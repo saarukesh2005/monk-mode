@@ -1,0 +1,65 @@
+name: CI
+
+# Tests every push and pull request. No secrets are used; nothing is published.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shared:
+    name: Shared packages, desktop UI and extensions (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: |
+          npx tsc -p tsconfig.json --noEmit
+          npx tsc -p apps/desktop/tsconfig.json --noEmit
+          npx tsc -p extensions/shared/tsconfig.json --noEmit
+      - name: Unit tests (vitest)
+        run: npx vitest run
+      - name: Build browser extensions
+        run: node scripts/build-extensions.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-extensions
+          path: artifacts/*.zip
+          if-no-files-found: error
+
+  rust:
+    name: Desktop core tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - run: npm ci
+      - name: Build frontend (required by tauri::generate_context!)
+        run: npm run build -w apps/desktop
+      - name: cargo test
+        working-directory: apps/desktop/src-tauri
+        run: cargo test --lib --locked

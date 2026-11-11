@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "MONK MODE",
+  "short_name": "MONK MODE",
+  "description": "Block distracting websites and short-video feeds in sync with the MONK MODE desktop app. Local only.",
+  "permissions": ["storage", "tabs", "webNavigation", "alarms", "idle", "declarativeNetRequest"],
+  "host_permissions": ["<all_urls>", "http://127.0.0.1/*"],
+  "action": { "default_popup": "popup.html", "default_title": "MONK MODE", "default_icon": { "16": "icons/icon-16.png", "32": "icons/icon-32.png" } },
+  "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "web_accessible_resources": [{ "resources": ["blocked.html", "blocked.js", "style.css"], "matches": ["<all_urls>"] }],
+  "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'self'" }
+}

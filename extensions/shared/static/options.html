@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>MONK MODE · Extension settings</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <main class="options">
+    <svg class="mark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M35 16.4A15.75 15.75 0 1 1 27.3 16.8" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="32" cy="32" r="3.5" fill="currentColor"/></svg>
+    <h1 style="font-size:22px;margin:16px 0 4px">Connect to MONK MODE</h1>
+    <p class="muted">This extension blocks websites according to your MONK MODE lists, schedules and focus sessions. It only talks to the MONK MODE app on this computer — never to the internet.</p>
+    <section id="perm" hidden style="padding:14px;border:1px solid var(--border);border-radius:12px;margin-top:16px">
+      <strong>Permission needed</strong>
+      <p class="muted" style="font-size:13px">To redirect blocked sites, the extension needs access to the sites you visit. It reads only the address of each page, never its content.</p>
+      <button class="primary" id="grant">Allow site access</button>
+    </section>
+    <label for="token">Pairing code (MONK MODE → Settings → Blocker)</label>
+    <input type="password" id="token" autocomplete="off" spellcheck="false">
+    <label for="port">Local port</label>
+    <input type="number" id="port" min="1024" max="65535" style="width:120px">
+    <label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:14px"><input type="checkbox" id="track"> Measure time spent on websites (active tab only, stays on this computer)</label>
+    <div class="row" style="margin-top:20px"><button class="primary" id="save">Save &amp; test connection</button></div>
+    <p id="result" class="muted" style="font-size:13px"></p>
+  </main>
+  <script src="options.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "description": "URL decision vectors. Allow rules win over block rules.",
+  "rules": {
+    "domains": ["reddit.com", "tiktok.com"],
+    "urlPatterns": ["youtube.com/shorts*", "instagram.com/reels*", "reddit.com/r/popular*"],
+    "allowDomains": ["old.reddit.com"]
+  },
+  "cases": [
+    { "url": "https://www.reddit.com/r/rust", "blocked": true, "reason": "domain" },
+    { "url": "https://old.reddit.com/r/rust", "blocked": false, "reason": "allowlisted" },
+    { "url": "https://notreddit.com/", "blocked": false, "reason": "not_matched" },
+    { "url": "https://www.youtube.com/shorts/abc123", "blocked": true, "reason": "url_pattern" },
+    { "url": "https://www.youtube.com/watch?v=abc", "blocked": false, "reason": "not_matched" },
+    { "url": "https://m.youtube.com/shorts/xyz", "blocked": true, "reason": "url_pattern" },
+    { "url": "https://www.instagram.com/reels/", "blocked": true, "reason": "url_pattern" },
+    { "url": "https://www.instagram.com/someone/", "blocked": false, "reason": "not_matched" },
+    { "url": "https://vm.tiktok.com/abc", "blocked": true, "reason": "domain" },
+    { "url": "chrome://extensions", "blocked": false, "reason": "not_web" },
+    { "url": "not a url", "blocked": false, "reason": "not_web" }
+  ],
+  "normalize": [
+    { "input": "https://www.Reddit.com/r/x?y=1", "expected": "reddit.com" },
+    { "input": "  YouTube.com  ", "expected": "youtube.com" },
+    { "input": "*.example.org", "expected": "example.org" },
+    { "input": "localhost:8080", "expected": "localhost" },
+    { "input": "bad domain", "expected": null },
+    { "input": "-bad.com", "expected": null },
+    { "input": "", "expected": null }
+  ]
+}

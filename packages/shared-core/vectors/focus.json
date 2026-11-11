@@ -1,0 +1,17 @@
+{
+  "description": "Focus timing vectors. Times are ms offsets; elapsed = (endedAt ?? pausedAt ?? now) - startedAt - pausedTotalMs.",
+  "cases": [
+    { "name": "running half way", "startedAt": 0, "pausedAt": null, "pausedTotalMs": 0, "plannedMs": 1500000, "now": 750000, "elapsed": 750000, "remaining": 750000, "due": 1500000 },
+    { "name": "paused freezes elapsed", "startedAt": 0, "pausedAt": 600000, "pausedTotalMs": 0, "plannedMs": 1500000, "now": 900000, "elapsed": 600000, "remaining": 900000, "due": null },
+    { "name": "resumed after pause shifts due", "startedAt": 0, "pausedAt": null, "pausedTotalMs": 300000, "plannedMs": 1500000, "now": 900000, "elapsed": 600000, "remaining": 900000, "due": 1800000 },
+    { "name": "overdue clamps remaining", "startedAt": 0, "pausedAt": null, "pausedTotalMs": 0, "plannedMs": 1500000, "now": 99999999, "elapsed": 99999999, "remaining": 0, "due": 1500000 },
+    { "name": "stopwatch has no remaining", "startedAt": 1000, "pausedAt": null, "pausedTotalMs": 0, "plannedMs": null, "now": 61000, "elapsed": 60000, "remaining": null, "due": null }
+  ],
+  "breaks": [
+    { "completed": 1, "every": 4, "phase": "short_break" },
+    { "completed": 3, "every": 4, "phase": "short_break" },
+    { "completed": 4, "every": 4, "phase": "long_break" },
+    { "completed": 8, "every": 4, "phase": "long_break" },
+    { "completed": 2, "every": 2, "phase": "long_break" }
+  ]
+}

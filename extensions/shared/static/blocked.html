@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Blocked · MONK MODE</title><link rel="stylesheet" href="style.css"></head>
+<body class="blocked">
+  <main>
+    <svg class="mark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M35 16.4A15.75 15.75 0 1 1 27.3 16.8" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="32" cy="32" r="3.5" fill="currentColor"/></svg>
+    <h1><span id="site">This site</span> is blocked</h1>
+    <p class="muted">MONK MODE is protecting your focus right now.</p>
+    <p class="quote" id="quote"></p>
+    <button class="primary" id="back">Back to work</button>
+    <p class="faint" id="rule" style="font-size:12px;margin-top:16px"></p>
+    <section class="card" id="access">
+      <strong>Need it briefly?</strong>
+      <p class="muted" style="font-size:13px;margin:4px 0 0">Emergency access is logged in your history.</p>
+      <input type="text" id="reason" placeholder="What do you need it for? (optional)" maxlength="200" style="margin-top:10px" aria-label="Reason">
+      <div class="row">
+        <button data-min="1">1 minute</button><button data-min="5">5 minutes</button><button data-min="15">15 minutes</button>
+      </div>
+      <p class="err" id="error" style="font-size:12px"></p>
+    </section>
+    <p class="muted" id="strict" hidden style="margin-top:24px;font-size:13px">A strict session is active. Emergency access is available only from the MONK MODE app.</p>
+  </main>
+  <script src="blocked.js" type="module"></script>
+</body>
+</html>

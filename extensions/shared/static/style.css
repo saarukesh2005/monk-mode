@@ -1,0 +1,31 @@
+:root {
+  --bg: #0e0f11; --surface: #151619; --surface-2: #1b1c20; --border: rgba(255,255,255,0.08);
+  --text: #ececee; --muted: #9a9ca3; --faint: #62646c; --accent: #e3a857; --danger: #e5484d; --success: #46a758;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #f6f5f2; --surface: #ffffff; --surface-2: #f0efeb; --border: rgba(20,20,20,0.1);
+    --text: #1a1b1e; --muted: #62646b; --faint: #9c9ea4; --accent: #b06e12; --danger: #ce2c31; --success: #2a7e3b; color-scheme: light; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 14px; }
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #111; font-weight: 600; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=text], input[type=number], input[type=password] { width: 100%; font: inherit; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+.muted { color: var(--muted); } .faint { color: var(--faint); } .ok { color: var(--success); } .warn { color: var(--accent); } .err { color: var(--danger); }
+.mark { width: 44px; height: 44px; color: var(--accent); }
+/* blocked page */
+.blocked { min-height: 100vh; display: grid; place-items: center; padding: 32px; }
+.blocked main { max-width: 460px; text-align: center; }
+.blocked h1 { font-size: 28px; letter-spacing: -0.02em; margin: 24px 0 6px; font-weight: 600; }
+.blocked .quote { margin: 28px 0; font-size: 17px; font-style: italic; color: var(--muted); }
+.blocked .card { margin-top: 28px; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); text-align: left; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+/* popup */
+.popup { width: 300px; padding: 16px; }
+.popup h2 { font-size: 15px; margin: 8px 0 2px; }
+/* options */
+.options { max-width: 560px; margin: 40px auto; padding: 0 20px; }
+.options label { display: block; margin: 16px 0 6px; font-size: 12px; color: var(--muted); }

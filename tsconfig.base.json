@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "baseUrl": ".",
+    "paths": {
+      "@monk/shared-types": ["packages/shared-types/src/index.ts"],
+      "@monk/shared-core": ["packages/shared-core/src/index.ts"],
+      "@monk/analytics": ["packages/analytics/src/index.ts"],
+      "@monk/validation": ["packages/validation/src/index.ts"],
+      "@monk/design-system": ["packages/design-system/src/index.ts"],
+      "@monk/database": ["packages/database/src/index.ts"]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "@monk/extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@types/chrome": "^0.0.287"
+  }
+}

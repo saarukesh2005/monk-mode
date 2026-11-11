@@ -1,0 +1,139 @@
+[
+  {
+    "id": "short-feeds",
+    "label": "Short-form feeds",
+    "description": "Blocks only the endless short-video feeds; the rest of each site keeps working.",
+    "domains": [
+      "tiktok.com"
+    ],
+    "urlPatterns": [
+      "youtube.com/shorts*",
+      "m.youtube.com/shorts*",
+      "instagram.com/reels*",
+      "instagram.com/reel/*",
+      "facebook.com/reel*",
+      "facebook.com/watch*",
+      "snapchat.com/spotlight*"
+    ]
+  },
+  {
+    "id": "social",
+    "label": "Social media",
+    "description": "Major social networks.",
+    "domains": [
+      "facebook.com",
+      "instagram.com",
+      "x.com",
+      "twitter.com",
+      "threads.net",
+      "tiktok.com",
+      "snapchat.com",
+      "pinterest.com",
+      "linkedin.com",
+      "tumblr.com",
+      "bsky.app"
+    ],
+    "urlPatterns": []
+  },
+  {
+    "id": "video",
+    "label": "Video & streaming",
+    "description": "Video platforms and streaming services.",
+    "domains": [
+      "youtube.com",
+      "netflix.com",
+      "twitch.tv",
+      "primevideo.com",
+      "disneyplus.com",
+      "hulu.com",
+      "vimeo.com",
+      "hotstar.com"
+    ],
+    "urlPatterns": []
+  },
+  {
+    "id": "forums",
+    "label": "Forums & aggregators",
+    "description": "Link aggregators and discussion boards.",
+    "domains": [
+      "reddit.com",
+      "news.ycombinator.com",
+      "9gag.com",
+      "quora.com",
+      "imgur.com"
+    ],
+    "urlPatterns": []
+  },
+  {
+    "id": "reddit-feeds",
+    "label": "Reddit feeds only",
+    "description": "Blocks the Reddit home/popular/all feeds but keeps individual threads reachable.",
+    "domains": [],
+    "urlPatterns": [
+      "reddit.com/",
+      "reddit.com/r/popular*",
+      "reddit.com/r/all*",
+      "reddit.com/?*",
+      "reddit.com/best*",
+      "reddit.com/hot*"
+    ]
+  },
+  {
+    "id": "news",
+    "label": "News",
+    "description": "General news sites.",
+    "domains": [
+      "cnn.com",
+      "bbc.com",
+      "nytimes.com",
+      "theguardian.com",
+      "foxnews.com",
+      "reuters.com",
+      "news.google.com",
+      "ndtv.com",
+      "timesofindia.indiatimes.com"
+    ],
+    "urlPatterns": []
+  },
+  {
+    "id": "shopping",
+    "label": "Shopping",
+    "description": "Online stores.",
+    "domains": [
+      "amazon.com",
+      "amazon.in",
+      "ebay.com",
+      "flipkart.com",
+      "aliexpress.com",
+      "etsy.com",
+      "myntra.com"
+    ],
+    "urlPatterns": []
+  },
+  {
+    "id": "gaming",
+    "label": "Gaming",
+    "description": "Game stores and gaming communities.",
+    "domains": [
+      "store.steampowered.com",
+      "steamcommunity.com",
+      "epicgames.com",
+      "roblox.com",
+      "chess.com",
+      "miniclip.com"
+    ],
+    "urlPatterns": []
+  },
+  {
+    "id": "chat",
+    "label": "Chat",
+    "description": "Web messaging.",
+    "domains": [
+      "web.whatsapp.com",
+      "discord.com",
+      "web.telegram.org",
+      "messenger.com"
+    ],
+    "urlPatterns": []
+  }
+]

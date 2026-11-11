@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1F2024"/>
+      <stop offset="1" stop-color="#0C0D0F"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F2C27E"/>
+      <stop offset="1" stop-color="#D6913A"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#bg)"/>
+  <rect x="64.5" y="64.5" width="895" height="895" rx="199.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.08"/>
+  <!-- An open ring: a cycle of focus that is never quite closed; the dot is the present moment. -->
+  <path d="M 560 262 A 252 252 0 1 1 437 268" fill="none" stroke="url(#ring)" stroke-width="44" stroke-linecap="round"/>
+  <circle cx="512" cy="512" r="46" fill="#ECECEE"/>
+</svg>

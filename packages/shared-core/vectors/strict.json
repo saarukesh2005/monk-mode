@@ -1,0 +1,9 @@
+{
+  "description": "Strict-mode exit policy vectors (maximum level uses a 300 s cool-down by default).",
+  "policies": [
+    { "level": "normal", "minReasonLength": 0, "cooldownMs": 0, "requiresPhrase": false, "canPause": true, "canRemoveRules": true },
+    { "level": "strict", "minReasonLength": 10, "cooldownMs": 30000, "requiresPhrase": false, "canPause": false, "canRemoveRules": false },
+    { "level": "maximum", "minReasonLength": 25, "cooldownMs": 300000, "requiresPhrase": true, "canPause": false, "canRemoveRules": false }
+  ],
+  "phrase": "I choose to end this commitment early"
+}
