@@ -116,6 +116,21 @@ impl ProcessMonitor {
         hits
     }
 
+    /// Main browser processes owned by the user: (pid, display name, extension family).
+    /// Safari reports the family "safari", which can never carry the MONK MODE extension.
+    pub fn running_browsers(&self) -> Vec<(Pid, String, &'static str)> {
+        let uid = self.current_uid();
+        self.sys
+            .processes()
+            .iter()
+            .filter(|(_, p)| uid.is_none() || p.user_id() == uid.as_ref())
+            .filter_map(|(pid, p)| {
+                let name = p.name().to_string_lossy().to_string();
+                browser_family_of_process(&name).map(|f| (*pid, name, f))
+            })
+            .collect()
+    }
+
     /// Asks the process to quit (SIGTERM / TerminateProcess). Returns false if it is gone.
     pub fn terminate(&self, pid: Pid) -> bool {
         match self.sys.process(pid) {
@@ -138,6 +153,17 @@ impl ProcessMonitor {
             let exe = p.exe().map(|e| e.to_string_lossy().to_string()).unwrap_or_default();
             (name, exe)
         })
+    }
+}
+
+/// Exact main-process names of browsers (helpers/renderers are children and close with them).
+pub fn browser_family_of_process(name: &str) -> Option<&'static str> {
+    match name.to_ascii_lowercase().as_str() {
+        "google chrome" | "brave browser" | "vivaldi" | "opera" | "arc" | "chromium" | "chrome.exe" | "brave.exe" | "vivaldi.exe" | "opera.exe" => Some("chromium"),
+        "microsoft edge" | "msedge.exe" => Some("edge"),
+        "firefox" | "firefox.exe" => Some("firefox"),
+        "safari" => Some("safari"),
+        _ => None,
     }
 }
 
@@ -269,6 +295,15 @@ mod tests {
         assert_eq!(bundle_path("/Applications/Discord.app/Contents/MacOS/Discord"), Some("/Applications/Discord.app"));
         assert_eq!(display_name("Electron", "/Applications/Slack.app/Contents/MacOS/Slack"), "Slack");
         assert_eq!(display_name("steam.exe", "C:\\Steam\\steam.exe"), "steam.exe");
+    }
+
+    #[test]
+    fn classifies_browser_processes() {
+        assert_eq!(browser_family_of_process("Google Chrome"), Some("chromium"));
+        assert_eq!(browser_family_of_process("msedge.exe"), Some("edge"));
+        assert_eq!(browser_family_of_process("firefox"), Some("firefox"));
+        assert_eq!(browser_family_of_process("Safari"), Some("safari"));
+        assert_eq!(browser_family_of_process("Google Chrome Helper (Renderer)"), None);
     }
 
     #[test]

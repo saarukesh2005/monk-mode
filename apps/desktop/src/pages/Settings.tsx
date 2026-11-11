@@ -251,6 +251,9 @@ function BlockerSettings() {
         <SettingRow title="Daily strict-mode limit" description="Protects you from over-committing. 0 means no limit.">
           <NumberInput label="Strict daily limit" value={s.strictDailyLimitMin} min={0} max={1440} onCommit={(v) => set('strictDailyLimitMin', v)} suffix="min" />
         </SettingRow>
+        <SettingRow title="Require the browser extension" description="During Strict and Maximum commitments, browsers whose MONK MODE extension is switched off or missing are closed (after a 90-second grace period). Safari cannot carry the extension, so it is closed too. Recorded in History → Strict mode.">
+          <Switch label="Require the browser extension during strict sessions" checked={s.requireExtensionInStrict} onChange={(v) => set('requireExtensionInStrict', v)} />
+        </SettingRow>
         <SettingRow title="Maximum-level exit cool-down" description="How long an emergency exit takes at the Maximum level (60–1800 seconds).">
           <NumberInput label="Cool-down seconds" value={s.emergencyCooldownSec} min={60} max={1800} onCommit={(v) => set('emergencyCooldownSec', v)} suffix="sec" />
         </SettingRow>

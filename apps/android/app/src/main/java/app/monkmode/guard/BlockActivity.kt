@@ -5,6 +5,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,10 +50,41 @@ class BlockActivity : ComponentActivity() {
         val pkg = intent.getStringExtra(EXTRA_PACKAGE) ?: ""
         val label = intent.getStringExtra(EXTRA_LABEL) ?: pkg
         val strict = intent.getBooleanExtra(EXTRA_STRICT, false)
+        val listId = intent.getStringExtra(EXTRA_LIST)
+        val pauseSeconds = intent.getIntExtra(EXTRA_PAUSE_SECONDS, 0)
+        val allowMin = intent.getIntExtra(EXTRA_PAUSE_ALLOW_MIN, 5)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = goHome()
+            override fun handleOnBackPressed() = if (pauseSeconds > 0) turnBack(label, listId, "") else goHome()
         })
-        setContent { MonkTheme { Shield(label, strict, onHome = ::goHome, onOpenApp = ::openMonk, onAllow = { allow(pkg) }) } }
+        setContent {
+            MonkTheme {
+                if (pauseSeconds > 0) {
+                    PauseShield(label, pauseSeconds, allowMin, onBack = { turnBack(label, listId, it) }, onContinue = { continueTo(pkg, label, listId, allowMin, it) })
+                } else {
+                    Shield(label, strict, onHome = ::goHome, onOpenApp = ::openMonk, onAllow = { allow(pkg) })
+                }
+            }
+        }
+    }
+
+    private fun turnBack(label: String, listId: String?, intention: String) {
+        Thread { runCatching { Monk.get(this).repo.recordPause(label, listId, "turned_back", intention) } }.start()
+        goHome()
+    }
+
+    /** Records the choice, grants the short allowance and reopens the app. */
+    private suspend fun continueTo(pkg: String, label: String, listId: String?, minutes: Int, intention: String): String? {
+        val error = withContext(Dispatchers.IO) {
+            runCatching {
+                val monk = Monk.get(this@BlockActivity)
+                monk.guardRules.grantException(pkg, minutes)
+                monk.repo.recordPause(label, listId, "continued", intention)
+            }.exceptionOrNull()?.message
+        }
+        if (error != null) return error
+        packageManager.getLaunchIntentForPackage(pkg)?.let(::startActivity)
+        finish()
+        return null
     }
 
     private fun goHome() {
@@ -76,6 +112,9 @@ class BlockActivity : ComponentActivity() {
         const val EXTRA_PACKAGE = "pkg"
         const val EXTRA_LABEL = "label"
         const val EXTRA_STRICT = "strict"
+        const val EXTRA_LIST = "list"
+        const val EXTRA_PAUSE_SECONDS = "pauseSeconds"
+        const val EXTRA_PAUSE_ALLOW_MIN = "pauseAllowMin"
     }
 }
 
@@ -101,6 +140,48 @@ private fun Shield(label: String, strict: Boolean, onHome: () -> Unit, onOpenApp
                 OutlinedButton(onClick = onOpenApp) { Text("Open MONK MODE") }
                 if (!strict) OutlinedButton(onClick = { scope.launch { error = onAllow() } }) { Text("Allow 5 min") }
             }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp)) }
+        }
+    }
+}
+
+/** Mindful pause: a breathing countdown and an intention, then a free choice (PNAS 2023 friction design). */
+@Composable
+private fun PauseShield(label: String, seconds: Int, allowMin: Int, onBack: (String) -> Unit, onContinue: suspend (String) -> String?) {
+    val scope = rememberCoroutineScope()
+    var remaining by remember { mutableStateOf(seconds) }
+    var intention by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while (remaining > 0) {
+            kotlinx.coroutines.delay(1000)
+            remaining--
+        }
+    }
+    val breath by rememberInfiniteTransition(label = "breath").animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(4000), RepeatMode.Reverse),
+        label = "orb",
+    )
+    val accent = MaterialTheme.colorScheme.primary
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Before you open $label", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(28.dp))
+            androidx.compose.foundation.layout.Box(Modifier.size(150.dp), contentAlignment = Alignment.Center) {
+                androidx.compose.foundation.Canvas(Modifier.size(150.dp)) {
+                    drawCircle(accent.copy(alpha = 0.35f * breath), radius = size.minDimension / 2 * breath)
+                }
+                Text(if (remaining > 0) "$remaining" else "", fontSize = 36.sp, fontWeight = FontWeight.Light)
+            }
+            Text(if (remaining > 0) (if ((seconds - remaining) / 4 % 2 == 0) "Breathe in…" else "Breathe out…") else "Your choice.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(20.dp))
+            androidx.compose.material3.OutlinedTextField(intention, { intention = it.take(200) }, label = { Text("What do you want to do there?") }, singleLine = true)
+            Spacer(Modifier.height(16.dp))
+            Button(onClick = { onBack(intention) }) { Text("I'll go back") }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(enabled = remaining <= 0, onClick = { scope.launch { error = onContinue(intention) } }) { Text("Continue for $allowMin min") }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp)) }
         }
     }

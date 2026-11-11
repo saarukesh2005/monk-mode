@@ -44,6 +44,15 @@ During the cool-down you can press **Stay committed** to cancel the exit.
 A **daily limit** (default 8 hours, Settings → Blocker) stops you from committing to more strict
 time in one day than you meant to.
 
+## Require the browser extension (desktop, optional)
+
+Settings → Blocker → **Require the browser extension**. During Strict and Maximum commitments,
+MONK MODE closes any browser whose MONK MODE extension has not synced in the last 90 seconds
+(switched off, removed, or a private window without the extension allowed). There is a 90-second
+grace period after the commitment starts. Safari cannot carry the extension, so it is closed too.
+Chrome, Brave, Vivaldi, Opera and Arc share one check: if the extension is active in one of them,
+the others are treated as protected. The setting cannot be changed during a strict commitment.
+
 ## What is recorded (tamper events)
 
 Everything below is saved to History → Strict mode, on this device only:
@@ -54,7 +63,8 @@ Everything below is saved to History → Strict mode, on this device only:
 - a refused exception or pause;
 - **monitor gap** — MONK MODE was not running for a while during a session (force-quit, crash or
   restart);
-- **clock changed** — the system clock moved backwards during a session.
+- **clock changed** — the system clock moved backwards during a session;
+- **extension missing** — a browser was closed because its MONK MODE extension was not active.
 
 ## Safe recovery
 

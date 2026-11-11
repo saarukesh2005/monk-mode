@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showSecondsInTimer: true,
   usageTracking: true,
   hostsBlockingEnabled: false,
+  requireExtensionInStrict: false,
   strictDailyLimitMin: 480,
   emergencyCooldownSec: 300,
   extensionToken: '',

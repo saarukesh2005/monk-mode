@@ -159,12 +159,18 @@ export interface DailyPlan {
 
 export type RuleType = 'app' | 'domain' | 'url_pattern' | 'category';
 
+export type BlockMode = 'block' | 'pause';
+
 export interface Blocklist {
   id: Id;
   name: string;
   kind: 'block' | 'allow';
   enabled: boolean;
   blockDuringFocus: boolean;
+  /** 'pause' = Mindful pause (breathing countdown + intention) instead of a hard block. */
+  mode?: BlockMode;
+  pauseSeconds?: number;
+  pauseAllowMin?: number;
   createdAt: EpochMs;
   updatedAt: EpochMs;
 }
@@ -246,6 +252,23 @@ export interface ActiveBlockSet {
   allowApps: string[];
   /** Domain → list id, for event attribution. */
   sourceList: Record<string, Id>;
+  /**
+   * Lists in Mindful-pause mode that are active now and NOT strict-enforced:
+   * list id → { seconds of pause, minutes allowed after continuing }.
+   */
+  pauseLists: Record<Id, { seconds: number; allowMin: number }>;
+}
+
+export type PauseOutcome = 'turned_back' | 'continued';
+
+export interface PauseEvent {
+  id: Id;
+  ts: EpochMs;
+  platform: Platform;
+  target: string;
+  listId: Id | null;
+  outcome: PauseOutcome;
+  intention: string;
 }
 
 // ---------- Strict mode ----------
@@ -347,6 +370,7 @@ export interface AppSettings {
   showSecondsInTimer: boolean;
   usageTracking: boolean;
   hostsBlockingEnabled: boolean;
+  requireExtensionInStrict: boolean;
   strictDailyLimitMin: number;
   emergencyCooldownSec: number;
   extensionToken: string;

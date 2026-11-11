@@ -173,6 +173,20 @@ private fun ListCard(list: Blocklist, rules: List<Rule>, schedules: List<Schedul
             Checkbox(checked = list.blockDuringFocus, onCheckedChange = { v -> actions.run { repo.setBlockDuringFocus(list.id, v) } })
             Text("Block during focus sessions", style = MaterialTheme.typography.bodySmall)
         }
+        if (list.kind == "block") {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Chip("Hard block", list.mode != "pause") { actions.run { guardRules.setListMode(list.id, "block", list.pauseSeconds, list.pauseAllowMin) } }
+                Chip("Mindful pause", list.mode == "pause") { actions.run { guardRules.setListMode(list.id, "pause", list.pauseSeconds, list.pauseAllowMin) } }
+            }
+            if (list.mode == "pause") {
+                Text("A ${list.pauseSeconds}-second breathing pause and an intention prompt, then you can go back or continue for ${list.pauseAllowMin} min. Strict commitments always hard-block.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(5, 10, 20, 30).forEach { sec -> Chip("$sec s", list.pauseSeconds == sec) { actions.run { guardRules.setListMode(list.id, "pause", sec, list.pauseAllowMin) } } }
+                    listOf(3, 5, 10).forEach { m -> Chip("then $m min", list.pauseAllowMin == m) { actions.run { guardRules.setListMode(list.id, "pause", list.pauseSeconds, m) } } }
+                }
+            }
+        }
         val apps = rules.filter { it.type == "app" }
         if (apps.isEmpty()) Text("No apps yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         apps.forEach { r ->

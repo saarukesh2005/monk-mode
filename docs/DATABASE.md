@@ -20,10 +20,11 @@
 | `categories`, `subjects`, `topics` | Labels, study subjects with weekly goals, topics with revision dates. |
 | `tasks`, `tags`, `task_tags` | Tasks (with subtasks via `parent_id`), tags. |
 | `events`, `daily_plans` | Calendar events (with recurrence) and daily plans / reviews. |
-| `blocklists`, `block_rules` | Lists (`block` or `allow`) and their rules (`app`, `domain`, `url_pattern`, `category`). |
+| `blocklists`, `block_rules` | Lists (`block` or `allow`; `mode` = `block` or `pause` with `pause_seconds`, `pause_allow_min`) and their rules (`app`, `domain`, `url_pattern`, `category`). |
 | `schedules`, `quick_blocks`, `usage_limits`, `exceptions` | What switches lists on, daily limits, short allowances. |
 | `strict_sessions`, `strict_session_lists`, `strict_events` | Commitments, the lists they lock, and their history. |
 | `block_events` | Every block (app closed, site redirected, shield shown). |
+| `pause_events` | Mindful-pause outcomes (`turned_back` / `continued`) with the stated intention. |
 | `app_usage`, `web_usage` | Measured usage intervals. |
 | `notifications` | Notification history. |
 | `settings` | Preferences as JSON values. |

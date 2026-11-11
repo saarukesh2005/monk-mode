@@ -8,11 +8,13 @@ Requirements: Android 8.0 (API 26) or newer.
 
 ## Which file
 
+From the [latest release](https://github.com/saarukesh2005/monk-mode/releases/latest):
+
 | File | Use it for |
 |---|---|
-| `artifacts/monk-mode-1.0.0-android-debug.apk` | **Install this on your phone.** Debug-signed, package `app.monkmode.android.debug`. |
-| `artifacts/monk-mode-1.0.0-android-release-unsigned.apk` | Smaller, optimised build. Android refuses unsigned APKs; sign it first (BUILD_GUIDE.md). |
-| `artifacts/monk-mode-1.0.0-android-release.aab` | App Bundle for Google Play (must be signed by you). |
+| `MONK-MODE-<version>-Android.apk` | **Install this on your phone.** Debug-signed (package `app.monkmode.android.debug`); later releases install over it. |
+| `MONK-MODE-<version>-Android-release-unsigned.apk` | Smaller, optimised build. Android refuses unsigned APKs; sign it first (BUILD_GUIDE.md). |
+| `MONK-MODE-<version>-Android.aab` | App Bundle for Google Play (must be signed by you). |
 
 ## Install on your phone
 
@@ -23,11 +25,11 @@ Requirements: Android 8.0 (API 26) or newer.
 2. Connect the phone, accept the "Allow USB debugging?" prompt.
 3. On the Mac:
    ```bash
-   ~/Library/Android/sdk/platform-tools/adb install -r "artifacts/monk-mode-1.0.0-android-debug.apk"
+   ~/Library/Android/sdk/platform-tools/adb install -r MONK-MODE-v1.1.0-Android.apk
    ```
 
-**Without a cable:** copy the APK to the phone (Files, Drive, Nearby Share…), tap it, and allow
-"Install unknown apps" for the app you opened it with when Android asks.
+**Without a cable (easiest):** open the release page in the phone's browser, download the APK,
+tap it, and allow "Install unknown apps" for your browser when Android asks.
 
 ## First run and permissions
 
@@ -60,7 +62,8 @@ On Xiaomi, Oppo, Vivo, Realme, OnePlus, Huawei and Samsung phones, also allow **
 - **Settings** (gear icon) — theme and accent, Pomodoro lengths, daily target, Monk Guard,
   encrypted backup and restore, delete data, capability report.
 
-When a blocked app opens, the MONK MODE shield covers it. **Back to what matters** returns to the
+Lists set to **Mindful pause** show a breathing countdown and ask what you want to do; you can
+go back or continue for a few minutes. When a hard-blocked app opens, the MONK MODE shield covers it. **Back to what matters** returns to the
 home screen. **Allow 5 min** gives a short exception (not available during strict commitments).
 
 ## Moving data from the Mac or PC

@@ -1,6 +1,6 @@
 // Pure, testable extension logic: state resolution, DNR rule generation, usage intervals.
 import type { ActiveBlockSet, Blocklist, BlockRule, BlockTrigger, Schedule } from '@monk/shared-types';
-import { evaluateUrl, normalizeDomain, resolveActiveBlockSet, type UrlDecision } from '@monk/shared-core';
+import { evaluateUrl, normalizeDomain, pauseFor, resolveActiveBlockSet, type UrlDecision } from '@monk/shared-core';
 
 export const BRIDGE_TIMEOUT_MS = 2500;
 export const STALE_AFTER_MS = 90_000;
@@ -37,7 +37,18 @@ const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
 
 export function parseConfig(c: BridgeConfig): { lists: Blocklist[]; rules: BlockRule[]; schedules: Schedule[] } {
   return {
-    lists: c.lists.map((l) => ({ id: str(l.id), name: str(l.name), kind: str(l.kind) === 'allow' ? 'allow' : 'block', enabled: bool(l.enabled), blockDuringFocus: bool(l.block_during_focus), createdAt: 0, updatedAt: 0 })),
+    lists: c.lists.map((l) => ({
+      id: str(l.id),
+      name: str(l.name),
+      kind: str(l.kind) === 'allow' ? 'allow' : 'block',
+      enabled: bool(l.enabled),
+      blockDuringFocus: bool(l.block_during_focus),
+      mode: str(l.mode) === 'pause' ? 'pause' : 'block',
+      pauseSeconds: num(l.pause_seconds) || 10,
+      pauseAllowMin: num(l.pause_allow_min) || 5,
+      createdAt: 0,
+      updatedAt: 0,
+    })),
     rules: c.rules.map((r) => ({ id: str(r.id), listId: str(r.list_id), type: str(r.type) as BlockRule['type'], value: str(r.value), label: str(r.label), platform: (str(r.platform) || 'all') as BlockRule['platform'], createdAt: 0 })),
     schedules: c.schedules.map((s) => ({ id: str(s.id), name: str(s.name), listId: str(s.list_id), daysMask: num(s.days_mask), startMinute: num(s.start_minute), endMinute: num(s.end_minute), strict: bool(s.strict), enabled: bool(s.enabled), createdAt: 0, updatedAt: 0 })),
   };
@@ -51,22 +62,39 @@ export function parseConfig(c: BridgeConfig): { lists: Blocklist[]; rules: Block
 export function effectiveBlockSet(cache: CachedState | null, now: number, exceptions: LocalException[]): ActiveBlockSet | null {
   if (!cache) return null;
   const fresh = now - cache.syncedAt < STALE_AFTER_MS;
-  const base: ActiveBlockSet = fresh
-    ? cache.state.blockSet
-    : (() => {
-        const cfg = parseConfig(cache.state.config);
-        const focusActive = !!cache.state.focus && cache.state.focus.phase === 'focus' && cache.state.focus.status === 'running' && (cache.state.focus.endsAt ?? 0) > now;
-        const strictLists = cache.state.strict && cache.state.strict.endsAt > now ? cache.state.strict.listIds : [];
-        return resolveActiveBlockSet({ now, platform: 'browser', ...cfg, quickBlocks: [], focusActive, strictListIds: strictLists, exceptions: [], limitExceeded: [] });
-      })();
+  const raw: ActiveBlockSet = fresh ? cache.state.blockSet : offlineBlockSet(cache, now);
+  // Older desktop versions do not send pauseLists.
+  const base: ActiveBlockSet = { ...raw, pauseLists: raw.pauseLists ?? {} };
   const live = exceptions.filter((e) => e.untilAt > now).map((e) => e.domain);
   if (live.length === 0 || base.strict) return base;
   return { ...base, allowDomains: [...new Set([...base.allowDomains, ...live])] };
 }
 
+/** Recomputes from the last synced lists and schedules while the desktop app is unreachable. */
+function offlineBlockSet(cache: CachedState, now: number): ActiveBlockSet {
+  const cfg = parseConfig(cache.state.config);
+  const f = cache.state.focus;
+  const focusActive = !!f && f.phase === 'focus' && f.status === 'running' && (f.endsAt ?? 0) > now;
+  const strictLists = cache.state.strict && cache.state.strict.endsAt > now ? cache.state.strict.listIds : [];
+  return resolveActiveBlockSet({ now, platform: 'browser', ...cfg, quickBlocks: [], focusActive, strictListIds: strictLists, exceptions: [], limitExceeded: [] });
+}
+
 export function decide(url: string, set: ActiveBlockSet | null): UrlDecision {
   if (!set || !set.active) return { blocked: false, matched: null, reason: 'not_matched' };
   return evaluateUrl(url, { domains: set.domains, urlPatterns: set.urlPatterns, allowDomains: set.allowDomains });
+}
+
+export type Verdict =
+  | { kind: 'allow' }
+  | { kind: 'block'; matched: string | null }
+  | { kind: 'pause'; matched: string | null; seconds: number; allowMin: number };
+
+/** Hard block, Mindful pause, or allow. Strict-enforced targets are never paused. */
+export function verdict(url: string, set: ActiveBlockSet | null): Verdict {
+  const d = decide(url, set);
+  if (!d.blocked || !set) return { kind: 'allow' };
+  const p = pauseFor({ ...set, pauseLists: set.pauseLists ?? {} }, d.matched);
+  return p ? { kind: 'pause', matched: d.matched, seconds: p.seconds, allowMin: p.allowMin } : { kind: 'block', matched: d.matched };
 }
 
 export function triggerFor(set: ActiveBlockSet): BlockTrigger {
@@ -96,10 +124,16 @@ export function buildDnrRules(set: ActiveBlockSet | null): DnrRule[] {
   if (!set || !set.active) return [];
   const rules: DnrRule[] = [];
   let id = 1;
-  const domains = set.domains.filter((d) => d !== '*');
+  // Pause-mode targets are handled by the navigation listener (pause page), not hard-blocked here.
+  const paused = (t: string): boolean => {
+    const list = set.sourceList[t];
+    return !!list && !!set.pauseLists?.[list];
+  };
+  const domains = set.domains.filter((d) => d !== '*' && !paused(d));
+  const patterns = set.urlPatterns.filter((p) => !paused(p));
   if (set.allowDomains.length) rules.push({ id: id++, priority: 3, action: { type: 'allow' }, condition: { requestDomains: set.allowDomains, resourceTypes: ['main_frame'] } });
   if (domains.length) rules.push({ id: id++, priority: 1, action: { type: 'redirect', redirect: { extensionPath: '/blocked.html?src=network' } }, condition: { requestDomains: domains, resourceTypes: ['main_frame'] } });
-  for (const p of set.urlPatterns.slice(0, 500)) rules.push({ id: id++, priority: 2, action: { type: 'redirect', redirect: { extensionPath: '/blocked.html?src=network' } }, condition: { urlFilter: patternToUrlFilter(p), resourceTypes: ['main_frame'] } });
+  for (const p of patterns.slice(0, 500)) rules.push({ id: id++, priority: 2, action: { type: 'redirect', redirect: { extensionPath: '/blocked.html?src=network' } }, condition: { urlFilter: patternToUrlFilter(p), resourceTypes: ['main_frame'] } });
   return rules;
 }
 

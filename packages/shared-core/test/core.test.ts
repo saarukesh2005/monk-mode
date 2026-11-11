@@ -12,6 +12,7 @@ import {
   plannedMsFor,
   DEFAULT_POMODORO,
   resolveActiveBlockSet,
+  pauseFor,
   validateBackupPayload,
   passphraseStrength,
   type BlockInputs,
@@ -109,6 +110,17 @@ describe('active block set', () => {
     const strictSet = resolveActiveBlockSet({ ...base, strictListIds: ['work'], exceptions: [ex] });
     expect(strictSet.apps).toEqual(['Discord']);
     expect(strictSet.strict).toBe(true);
+  });
+
+  it('marks active pause-mode lists, but never strict-enforced ones', () => {
+    const pausing = { ...base, lists: [{ ...list('work'), mode: 'pause' as const, pauseSeconds: 99, pauseAllowMin: 0 }, list('allow', 'allow')] };
+    const set = resolveActiveBlockSet({ ...pausing, focusActive: true });
+    expect(set.pauseLists).toEqual({ work: { seconds: 60, allowMin: 1 } });
+    expect(pauseFor(set, 'reddit.com')).toEqual({ listId: 'work', seconds: 60, allowMin: 1 });
+    expect(pauseFor(set, null)).toBeNull();
+    const strictSet = resolveActiveBlockSet({ ...pausing, strictListIds: ['work'] });
+    expect(strictSet.pauseLists).toEqual({});
+    expect(pauseFor(strictSet, 'reddit.com')).toBeNull();
   });
 
   it('expired quick blocks do not apply', () => {

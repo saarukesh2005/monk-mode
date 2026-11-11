@@ -142,7 +142,8 @@ pub fn run() {
 
             let handle = app.handle().clone();
             let notifier = Arc::new(TauriNotifier { app: handle.clone(), db: database.clone() });
-            monitor::Monitor::new(database.clone(), data_dir, block_set.clone(), notifier).spawn();
+            let heartbeats = bridge::Heartbeats::default();
+            monitor::Monitor::new(database.clone(), data_dir, block_set.clone(), notifier, heartbeats.clone()).spawn();
 
             let bridge_handle = handle.clone();
             let port = std::env::var("MONK_BRIDGE_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(bridge::DEFAULT_PORT);
@@ -150,6 +151,7 @@ pub fn run() {
                 bridge::BridgeState {
                     db: database.clone(),
                     block_set,
+                    heartbeats,
                     on_change: Box::new(move |what| {
                         let _ = bridge_handle.emit("monk://data", what);
                     }),

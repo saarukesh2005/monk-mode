@@ -27,7 +27,7 @@ for (const [name, manifest] of Object.entries(targets)) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   await build({
-    entryPoints: ['background', 'blocked', 'popup', 'options'].map((e) => join(shared, `src/${e}.ts`)),
+    entryPoints: ['background', 'blocked', 'pause', 'popup', 'options'].map((e) => join(shared, `src/${e}.ts`)),
     outdir: out,
     bundle: true,
     format: 'esm',

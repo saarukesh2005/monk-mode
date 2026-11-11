@@ -93,6 +93,48 @@ export function ListEditor({ list, rules, locked }: { list: Blocklist; rules: Bl
         </div>
       </div>
 
+      {!isAllow && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line px-3.5 py-3">
+          <Segmented
+            label="When something on this list is opened"
+            size="sm"
+            value={list.mode ?? 'block'}
+            onChange={(mode) => update({ mode })}
+            options={[
+              { value: 'block', label: 'Hard block' },
+              { value: 'pause', label: 'Mindful pause' },
+            ]}
+          />
+          {list.mode === 'pause' ? (
+            <span className="flex flex-wrap items-center gap-2 text-[12px] text-ink-muted">
+              Pause
+              <Select aria-label="Pause length" value={list.pauseSeconds ?? 10} onChange={(e) => update({ pauseSeconds: Number(e.target.value) })} className="h-7 w-20 text-[12px]">
+                {[5, 10, 15, 20, 30, 60].map((n) => (
+                  <option key={n} value={n}>
+                    {n} s
+                  </option>
+                ))}
+              </Select>
+              then allow
+              <Select aria-label="Allowed minutes after continuing" value={list.pauseAllowMin ?? 5} onChange={(e) => update({ pauseAllowMin: Number(e.target.value) })} className="h-7 w-20 text-[12px]">
+                {[1, 3, 5, 10, 15, 30].map((n) => (
+                  <option key={n} value={n}>
+                    {n} min
+                  </option>
+                ))}
+              </Select>
+            </span>
+          ) : (
+            <span className="text-[12px] text-ink-faint">Blocked outright while the list is active.</span>
+          )}
+          {list.mode === 'pause' && (
+            <p className="w-full text-[11px] leading-relaxed text-ink-faint">
+              Websites (with the browser extension) and Android apps show a breathing pause and ask for your intention; you can turn back or continue for a few minutes. Research on this kind of friction found people opened the target apps about 57% less often. Strict commitments always hard-block. Desktop apps on this list are still closed, because a native app launch cannot be paused.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="rounded-xl border border-line bg-surface-2 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <Segmented

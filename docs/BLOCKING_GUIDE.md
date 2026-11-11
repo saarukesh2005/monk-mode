@@ -28,6 +28,28 @@ Android) also win, except during a strict commitment.
 
 You can type a full address such as `https://www.Reddit.com/r/x`; it is cleaned to `reddit.com`.
 
+## Mindful pause (instead of a hard block)
+
+Each blocklist can be set to **Hard block** or **Mindful pause** (Blocker page on desktop, Guard tab
+on Android). With Mindful pause, opening something on the list shows:
+
+1. a breathing countdown (5–60 seconds, your choice),
+2. the question "What do you want to do there?",
+3. two buttons: **I'll go back**, or — once the countdown ends — **Continue for N minutes**.
+
+Every choice is recorded (on your device) and Analytics / Insights shows how often you turned back.
+This kind of friction was tested in a six-week field experiment with 280 people (Grüning, Riedel &
+Lorenz-Spreen, *PNAS* 2023): a short pause cut how often people opened the target apps by about 57%.
+
+Where it applies:
+
+| | Mindful pause |
+|---|---|
+| Websites (browser extension) | Yes |
+| Android apps | Yes |
+| Desktop apps | No — a native app launch cannot be paused, so apps on a pause list are closed as usual |
+| During a strict commitment | Never — committed lists always hard-block |
+
 ## Short-video feeds
 
 The built-in **Short-form feeds** category blocks only the feed pages, so the rest of each site

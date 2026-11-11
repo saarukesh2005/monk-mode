@@ -32,9 +32,15 @@ data class Task(
     }
 }
 
-data class Blocklist(val id: String, val name: String, val kind: String, val enabled: Boolean, val blockDuringFocus: Boolean) {
+data class Blocklist(
+    val id: String, val name: String, val kind: String, val enabled: Boolean, val blockDuringFocus: Boolean,
+    val mode: String = "block", val pauseSeconds: Int = 10, val pauseAllowMin: Int = 5,
+) {
     companion object {
-        fun from(c: Cursor) = Blocklist(c.str("id"), c.str("name"), c.str("kind"), c.bool("enabled"), c.bool("block_during_focus"))
+        fun from(c: Cursor) = Blocklist(
+            c.str("id"), c.str("name"), c.str("kind"), c.bool("enabled"), c.bool("block_during_focus"),
+            c.str("mode"), c.int("pause_seconds"), c.int("pause_allow_min"),
+        )
     }
 }
 
@@ -86,10 +92,16 @@ data class StrictEvent(val id: String, val ts: Long, val kind: String, val detai
 data class UsageTotal(val key: String, val label: String, val ms: Long)
 
 /** What Monk Guard must enforce right now. */
-data class ActiveBlocks(val packages: Set<String>, val triggers: Set<String>, val strict: Boolean, val triggerFor: Map<String, String>, val listFor: Map<String, String>) {
+data class ActiveBlocks(
+    val packages: Set<String>, val triggers: Set<String>, val strict: Boolean, val triggerFor: Map<String, String>, val listFor: Map<String, String>,
+    val pauseLists: Map<String, app.monkmode.core.PauseCfg> = emptyMap(),
+) {
     val active get() = packages.isNotEmpty()
+    fun pauseFor(pkg: String) = listFor[pkg]?.let { pauseLists[it] }
 
     companion object {
         val NONE = ActiveBlocks(emptySet(), emptySet(), false, emptyMap(), emptyMap())
     }
 }
+
+data class PauseStats(val total: Int, val turnedBack: Int)

@@ -152,9 +152,18 @@ pub struct ActiveBlockSet {
     pub allow_domains: Vec<String>,
     pub allow_apps: Vec<String>,
     pub source_list: BTreeMap<String, String>,
+    /// Active Mindful-pause lists that are not strict-enforced (list id → settings).
+    pub pause_lists: BTreeMap<String, PauseCfg>,
     /// app/domain → trigger that activated it (for block-event attribution).
     #[serde(skip)]
     pub trigger_for: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PauseCfg {
+    pub seconds: i64,
+    pub allow_min: i64,
 }
 
 struct Rule {
@@ -179,13 +188,15 @@ pub fn resolve(conn: &Connection, now: i64, focus_active: bool, strict_lists: &[
     let at = local_naive(now);
     let mut triggers: BTreeMap<String, BTreeSet<&'static str>> = BTreeMap::new();
 
-    let mut stmt = conn.prepare("SELECT id, block_during_focus FROM blocklists WHERE enabled = 1 AND kind = 'block'")?;
-    let lists: Vec<(String, bool)> = stmt
-        .query_map([], |r| Ok((r.get(0)?, r.get::<_, i64>(1)? == 1)))?
+    let mut stmt = conn.prepare(
+        "SELECT id, block_during_focus, mode, pause_seconds, pause_allow_min FROM blocklists WHERE enabled = 1 AND kind = 'block'",
+    )?;
+    let lists: Vec<(String, bool, String, i64, i64)> = stmt
+        .query_map([], |r| Ok((r.get(0)?, r.get::<_, i64>(1)? == 1, r.get(2)?, r.get(3)?, r.get(4)?)))?
         .collect::<Result<_, _>>()?;
-    let enabled: BTreeSet<&str> = lists.iter().map(|(id, _)| id.as_str()).collect();
+    let enabled: BTreeSet<&str> = lists.iter().map(|l| l.0.as_str()).collect();
     if focus_active {
-        for (id, during_focus) in &lists {
+        for (id, during_focus, ..) in &lists {
             if *during_focus {
                 triggers.entry(id.clone()).or_default().insert("focus");
             }
@@ -224,6 +235,12 @@ pub fn resolve(conn: &Connection, now: i64, focus_active: bool, strict_lists: &[
     let mut all_triggers = BTreeSet::new();
     for (list_id, trig) in &triggers {
         let is_strict = trig.contains("strict");
+        // A commitment always hard-blocks; Mindful pause only applies outside strict enforcement.
+        if let Some((_, _, mode, secs, allow)) = lists.iter().find(|l| &l.0 == list_id) {
+            if mode == "pause" && !is_strict {
+                set.pause_lists.insert(list_id.clone(), PauseCfg { seconds: (*secs).clamp(3, 60), allow_min: (*allow).clamp(1, 30) });
+            }
+        }
         let primary = if is_strict { "strict" } else { trig.iter().next().copied().unwrap_or("manual") };
         all_triggers.extend(trig.iter().copied());
         let mut push = |bucket: &mut BTreeSet<String>, v: &str, set: &mut ActiveBlockSet| {
@@ -402,9 +419,15 @@ mod tests {
         assert!(!set.apps.contains(&"Slack".to_string()));
         assert!(set.triggers.contains(&"limit".to_string()));
 
-        // Exceptions cannot weaken a strict session.
+        // Pause-mode lists are reported for the extension / Android shield.
+        c.execute("UPDATE blocklists SET mode = 'pause', pause_seconds = 15 WHERE id = 'w'", []).unwrap();
+        let paused = resolve(&c, now, true, &[]).unwrap();
+        assert_eq!(paused.pause_lists.get("w"), Some(&PauseCfg { seconds: 15, allow_min: 5 }));
+
+        // Exceptions cannot weaken a strict session, and strict lists are never paused.
         let strict = resolve(&c, now, false, &["w".to_string()]).unwrap();
         assert!(strict.strict);
         assert!(strict.apps.contains(&"Slack".to_string()));
+        assert!(strict.pause_lists.is_empty());
     }
 }

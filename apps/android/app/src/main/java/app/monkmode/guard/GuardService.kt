@@ -80,7 +80,7 @@ class GuardService : Service() {
         val session = monk.focus.active()
         if (blocks.active) {
             val fg = monk.usage.foregroundPackage(now)
-            if (fg != null && fg != packageName && fg in blocks.packages) shield(monk, fg, blocks.triggerFor[fg] ?: "manual", blocks.listFor[fg], blocks.strict, now)
+            if (fg != null && fg != packageName && fg in blocks.packages) shield(monk, fg, blocks.triggerFor[fg] ?: "manual", blocks.listFor[fg], blocks.strict, blocks.pauseFor(fg), now)
         }
 
         val nm = getSystemService(android.app.NotificationManager::class.java)
@@ -110,9 +110,10 @@ class GuardService : Service() {
         }
     }
 
-    private fun shield(monk: Monk, pkg: String, trigger: String, listId: String?, strict: Boolean, now: Long) {
+    private fun shield(monk: Monk, pkg: String, trigger: String, listId: String?, strict: Boolean, pause: app.monkmode.core.PauseCfg?, now: Long) {
         val label = runCatching { @Suppress("DEPRECATION") packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString() }.getOrDefault(pkg)
-        if (now - (lastShield[pkg] ?: 0) > EVENT_DEBOUNCE_MS) monk.repo.recordBlock(label, listId, trigger)
+        // Mindful pauses are recorded by the pause screen with their outcome, not as blocks.
+        if (pause == null && now - (lastShield[pkg] ?: 0) > EVENT_DEBOUNCE_MS) monk.repo.recordBlock(label, listId, trigger)
         lastShield[pkg] = now
         if (!Settings.canDrawOverlays(this)) {
             // Without "Display over other apps" Android blocks background activity starts; notify instead.
@@ -124,7 +125,10 @@ class GuardService : Service() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                 .putExtra(BlockActivity.EXTRA_PACKAGE, pkg)
                 .putExtra(BlockActivity.EXTRA_LABEL, label)
-                .putExtra(BlockActivity.EXTRA_STRICT, strict),
+                .putExtra(BlockActivity.EXTRA_STRICT, strict)
+                .putExtra(BlockActivity.EXTRA_LIST, listId)
+                .putExtra(BlockActivity.EXTRA_PAUSE_SECONDS, pause?.seconds ?: 0)
+                .putExtra(BlockActivity.EXTRA_PAUSE_ALLOW_MIN, pause?.allowMin ?: 0),
         )
     }
 

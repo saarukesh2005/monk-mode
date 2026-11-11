@@ -1,5 +1,5 @@
-import { bridge, ext, getLocal, getSettings, setLocal } from './api';
-import { buildDnrRules, decide, domainOf, effectiveBlockSet, switchUsage, triggerFor, type BridgeState, type CachedState, type LocalException, type OpenUsage, type UsageRecord } from './engine';
+import { bridge, browserName, ext, getLocal, getSettings, setLocal } from './api';
+import { buildDnrRules, domainOf, effectiveBlockSet, switchUsage, triggerFor, verdict, type BridgeState, type CachedState, type LocalException, type OpenUsage, type UsageRecord } from './engine';
 
 const SYNC_ALARM = 'monk-sync';
 const MAX_QUEUE = 2000;
@@ -10,7 +10,15 @@ interface BlockReport {
   trigger: string;
 }
 
-const browserName = (): string => (navigator.userAgent.includes('Firefox') ? 'Firefox' : navigator.userAgent.includes('Edg/') ? 'Edge' : 'Chromium');
+interface PauseReport {
+  ts: number;
+  domain: string;
+  outcome: 'turned_back' | 'continued';
+  intention: string;
+}
+
+type Queue = { blocks: BlockReport[]; usage: UsageRecord[]; pauses: PauseReport[] };
+const EMPTY_QUEUE: Queue = { blocks: [], usage: [], pauses: [] };
 
 async function currentSet() {
   const cache = await getLocal<CachedState | null>('cache', null);
@@ -51,19 +59,19 @@ async function sync(): Promise<void> {
   await updateBadge();
 }
 
-async function enqueue(kind: 'blocks' | 'usage', item: BlockReport | UsageRecord): Promise<void> {
-  const q = await getLocal<{ blocks: BlockReport[]; usage: UsageRecord[] }>('queue', { blocks: [], usage: [] });
+async function enqueue<K extends keyof Queue>(kind: K, item: Queue[K][number]): Promise<void> {
+  const q = { ...EMPTY_QUEUE, ...(await getLocal<Partial<Queue>>('queue', {})) };
   const next = { ...q, [kind]: [...q[kind], item].slice(-MAX_QUEUE) };
   await setLocal({ queue: next });
 }
 
 async function flushQueue(): Promise<void> {
   const settings = await getSettings();
-  const q = await getLocal<{ blocks: BlockReport[]; usage: UsageRecord[] }>('queue', { blocks: [], usage: [] });
-  if (!settings.token || (q.blocks.length === 0 && q.usage.length === 0)) return;
+  const q = { ...EMPTY_QUEUE, ...(await getLocal<Partial<Queue>>('queue', {})) };
+  if (!settings.token || (q.blocks.length === 0 && q.usage.length === 0 && q.pauses.length === 0)) return;
   try {
-    await bridge(settings, '/v1/events', { method: 'POST', body: JSON.stringify({ browser: browserName(), blocks: q.blocks, usage: q.usage }) });
-    await setLocal({ queue: { blocks: [], usage: [] } });
+    await bridge(settings, '/v1/events', { method: 'POST', body: JSON.stringify({ browser: browserName(), blocks: q.blocks, usage: q.usage, pauses: q.pauses }) });
+    await setLocal({ queue: EMPTY_QUEUE });
   } catch {
     // Kept for the next sync; nothing leaves this computer.
   }
@@ -72,11 +80,18 @@ async function flushQueue(): Promise<void> {
 async function check(tabId: number, url: string | undefined): Promise<void> {
   if (!url || url.startsWith(ext.runtime.getURL(''))) return;
   const set = await currentSet();
-  const d = decide(url, set);
-  if (!d.blocked || !set) return;
+  const v = verdict(url, set);
+  if (v.kind === 'allow' || !set) return;
   const domain = domainOf(url) ?? 'unknown';
+  const q = (k: string, val: string | number) => `${k}=${encodeURIComponent(String(val))}`;
+  if (v.kind === 'pause') {
+    // Mindful pause: outcome is recorded by the pause page (turned back / continued).
+    const target = ext.runtime.getURL(`pause.html?${[q('u', url), q('s', v.seconds), q('a', v.allowMin)].join('&')}`);
+    await ext.tabs.update(tabId, { url: target }).catch(() => undefined);
+    return;
+  }
   await enqueue('blocks', { ts: Date.now(), domain, trigger: triggerFor(set) });
-  const target = ext.runtime.getURL(`blocked.html?u=${encodeURIComponent(url)}&m=${encodeURIComponent(d.matched ?? '')}&s=${set.strict ? 1 : 0}`);
+  const target = ext.runtime.getURL(`blocked.html?${[q('u', url), q('m', v.matched ?? ''), q('s', set.strict ? 1 : 0)].join('&')}`);
   await ext.tabs.update(tabId, { url: target }).catch(() => undefined);
 }
 
@@ -133,7 +148,11 @@ ext.tabs.onUpdated.addListener((_id, info) => {
 ext.windows.onFocusChanged.addListener(() => void trackActive());
 ext.idle.onStateChanged.addListener(() => void trackActive());
 
-type Message = { type: 'status' } | { type: 'sync' } | { type: 'exception'; domain: string; minutes: number; reason: string };
+type Message =
+  | { type: 'status' }
+  | { type: 'sync' }
+  | { type: 'exception'; domain: string; minutes: number; reason: string }
+  | { type: 'pause-outcome'; domain: string; outcome: 'turned_back' | 'continued'; intention: string };
 
 ext.runtime.onMessage.addListener((msg: Message, _sender, reply) => {
   (async () => {
@@ -143,6 +162,12 @@ ext.runtime.onMessage.addListener((msg: Message, _sender, reply) => {
     }
     if (msg.type === 'status') {
       return { set: await currentSet(), cache: await getLocal<CachedState | null>('cache', null), lastError: await getLocal('lastError', ''), settings: await getSettings() };
+    }
+    if (msg.type === 'pause-outcome') {
+      const outcome = msg.outcome === 'continued' ? 'continued' : 'turned_back';
+      await enqueue('pauses', { ts: Date.now(), domain: msg.domain, outcome, intention: String(msg.intention ?? '').slice(0, 200) });
+      await flushQueue();
+      return { ok: true };
     }
     if (msg.type === 'exception') {
       const set = await currentSet();

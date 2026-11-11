@@ -9,22 +9,28 @@ accounts, no cloud, no subscriptions, no ads and no tracking. Everything stays o
   exact through restarts and sleep.
 - **Monk Guard** — closes distracting apps (desktop), shields them (Android), and blocks websites
   and short-video feeds like YouTube Shorts and Instagram Reels (browser extension).
+- **Mindful pause** — instead of a hard block, a breathing pause and an intention prompt before a
+  distracting site or app opens; Analytics shows how often you turned back.
 - **Strict mode** — timed commitments with an always-available, deliberately slow emergency exit.
 - **Planning** — tasks, daily plan and review, calendar, study planner with spaced revision.
 - **Analytics** — real, local data only, every number labelled measured / recorded / no data.
 - **Encrypted backups** that move between all three platforms.
 
-## Get it
+## Download
 
-| Platform | File | Guide |
+**[⬇ Latest release](https://github.com/saarukesh2005/monk-mode/releases/latest)** — pick the file for your device:
+
+| Device | File | Guide |
 |---|---|---|
-| macOS (Apple Silicon) | `artifacts/MONK MODE_1.0.0_aarch64.dmg` | [docs/INSTALLATION_MACOS.md](docs/INSTALLATION_MACOS.md) |
-| Windows 10/11 | GitHub Actions → *Desktop builds* (`.exe`, `.msi`, portable) | [docs/INSTALLATION_WINDOWS.md](docs/INSTALLATION_WINDOWS.md) |
-| Android 8+ | `artifacts/monk-mode-1.0.0-android-debug.apk` | [docs/INSTALLATION_ANDROID.md](docs/INSTALLATION_ANDROID.md) |
-| Chrome / Edge / Brave | `artifacts/monk-mode-chromium-1.0.0.zip` | [docs/BLOCKING_GUIDE.md](docs/BLOCKING_GUIDE.md) |
-| Firefox | `artifacts/monk-mode-firefox-1.0.0.zip` | [docs/BLOCKING_GUIDE.md](docs/BLOCKING_GUIDE.md) |
+| Mac (M1–M4, Apple Silicon) | `MONK-MODE-v1.1.0-macOS-AppleSilicon.dmg` | [Install on macOS](docs/INSTALLATION_MACOS.md) |
+| Mac (Intel) | `MONK-MODE-v1.1.0-macOS-Intel.dmg` | [Install on macOS](docs/INSTALLATION_MACOS.md) |
+| Windows 10/11 | `MONK-MODE-v1.1.0-Windows-Setup.exe` · `.msi` · `-Portable.exe` | [Install on Windows](docs/INSTALLATION_WINDOWS.md) |
+| Android 8+ | `MONK-MODE-v1.1.0-Android.apk` | [Install on Android](docs/INSTALLATION_ANDROID.md) |
+| Chrome / Edge / Brave | `monk-mode-chromium-1.1.0.zip` | [Browser extension](docs/BLOCKING_GUIDE.md) |
+| Firefox | `monk-mode-firefox-1.1.0.zip` | [Browser extension](docs/BLOCKING_GUIDE.md) |
 
-Builds are unsigned (no certificates are included). Checksums: `artifacts/SHA256SUMS.txt`.
+Builds are unsigned (no certificates are included), so your system asks you to confirm the first
+launch — the guides show how. Checksums are attached to the release (`SHA256SUMS-*.txt`).
 
 ## Run from source
 

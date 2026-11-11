@@ -24,7 +24,7 @@ pub const TABLES: &[TableSpec] = &[
     TableSpec { name: "tasks", pk: &["id"], columns: &["id", "parent_id", "title", "notes", "priority", "status", "due_date", "recurrence", "category_id", "subject_id", "sort_order", "completed_at", "created_at", "updated_at"], writable: true },
     TableSpec { name: "tags", pk: &["id"], columns: &["id", "name"], writable: true },
     TableSpec { name: "task_tags", pk: &["task_id", "tag_id"], columns: &["task_id", "tag_id"], writable: true },
-    TableSpec { name: "blocklists", pk: &["id"], columns: &["id", "name", "kind", "enabled", "block_during_focus", "created_at", "updated_at"], writable: true },
+    TableSpec { name: "blocklists", pk: &["id"], columns: &["id", "name", "kind", "enabled", "block_during_focus", "mode", "pause_seconds", "pause_allow_min", "created_at", "updated_at"], writable: true },
     TableSpec { name: "block_rules", pk: &["id"], columns: &["id", "list_id", "type", "value", "label", "platform", "created_at"], writable: true },
     TableSpec { name: "schedules", pk: &["id"], columns: &["id", "name", "list_id", "days_mask", "start_minute", "end_minute", "strict", "enabled", "created_at", "updated_at"], writable: true },
     TableSpec { name: "quick_blocks", pk: &["id"], columns: &["id", "list_id", "started_at", "ends_at", "ended_at"], writable: false },
@@ -37,6 +37,7 @@ pub const TABLES: &[TableSpec] = &[
     TableSpec { name: "strict_sessions", pk: &["id"], columns: &["id", "level", "state", "started_at", "ends_at", "paused_at", "ended_at", "exit_reason", "exit_requested_at", "created_at", "updated_at"], writable: false },
     TableSpec { name: "strict_events", pk: &["id"], columns: &["id", "session_id", "ts", "kind", "detail"], writable: false },
     TableSpec { name: "block_events", pk: &["id"], columns: &["id", "ts", "platform", "source", "target", "list_id", "action", "trigger"], writable: false },
+    TableSpec { name: "pause_events", pk: &["id"], columns: &["id", "ts", "platform", "target", "list_id", "outcome", "intention"], writable: false },
     TableSpec { name: "app_usage", pk: &["id"], columns: &["id", "app_id", "app_name", "started_at", "ended_at", "duration_ms", "platform", "source"], writable: false },
     TableSpec { name: "web_usage", pk: &["id"], columns: &["id", "domain", "started_at", "ended_at", "duration_ms", "browser"], writable: false },
     TableSpec { name: "system_changes", pk: &["id"], columns: &["id", "kind", "target", "backup_path", "applied_at", "reverted_at"], writable: false },
@@ -187,7 +188,8 @@ fn strict_refuses(conn: &Connection, table: &str, before: Option<&Map<String, Js
                 && (after.is_none()
                     || after.and_then(|a| a.get("enabled")).and_then(Json::as_i64) == Some(0)
                     || after.and_then(|a| a.get("enabled")).and_then(Json::as_bool) == Some(false)
-                    || after.and_then(|a| str_field(a, "kind")) == Some("allow"))
+                    || after.and_then(|a| str_field(a, "kind")) == Some("allow")
+                    || after.and_then(|a| str_field(a, "mode")) == Some("pause"))
         }),
         "schedules" => before.is_some_and(|b| b.get("strict").and_then(Json::as_i64) == Some(1)),
         "usage_limits" => before.is_some(),
@@ -331,10 +333,11 @@ mod tests {
         strict::start(&mut c, &req, now_ms(), 0, 0).unwrap();
         assert!(delete(&mut c, "block_rules", &obj(json!({"id": "r"}))).is_err());
         assert!(upsert(&mut c, "blocklists", &obj(json!({"id": "l", "enabled": false}))).is_err());
+        assert!(upsert(&mut c, "blocklists", &obj(json!({"id": "l", "mode": "pause"}))).is_err(), "pause mode would weaken a strict list");
         assert!(delete(&mut c, "blocklists", &obj(json!({"id": "l"}))).is_err());
         assert!(upsert(&mut c, "block_rules", &obj(json!({"id": "r2", "list_id": "l", "type": "domain", "value": "y.com"}))).is_ok());
         assert!(upsert(&mut c, "blocklists", &obj(json!({"id": "l", "name": "Renamed"}))).is_ok());
         let tamper: i64 = c.query_row("SELECT COUNT(*) FROM strict_events WHERE kind = 'blocked_edit'", [], |r| r.get(0)).unwrap();
-        assert_eq!(tamper, 3);
+        assert_eq!(tamper, 4);
     }
 }

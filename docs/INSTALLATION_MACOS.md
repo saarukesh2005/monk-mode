@@ -5,8 +5,9 @@ an Intel build is produced by GitHub Actions (`Desktop builds` workflow).
 
 ## Install
 
-1. Open `MONK MODE_1.0.0_aarch64.dmg`
-   (local build: `apps/desktop/src-tauri/target/release/bundle/dmg/`).
+1. Download from the [latest release](https://github.com/saarukesh2005/monk-mode/releases/latest):
+   `…-macOS-AppleSilicon.dmg` for M1–M4 Macs (Apple menu → About This Mac → "Chip: Apple"),
+   or `…-macOS-Intel.dmg` for Intel Macs. Open it.
 2. Drag **MONK MODE** onto **Applications**.
 3. Eject the disk image.
 

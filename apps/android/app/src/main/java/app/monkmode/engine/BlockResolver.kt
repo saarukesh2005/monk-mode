@@ -28,7 +28,7 @@ class BlockResolver(private val repo: Repo, private val focus: FocusEngine, priv
         val result = CoreResolver.resolve(
             at = LocalDateTime.now(),
             nowMs = now,
-            lists = repo.blocklists().map { ListRow(it.id, it.kind, it.enabled, it.blockDuringFocus) },
+            lists = repo.blocklists().map { ListRow(it.id, it.kind, it.enabled, it.blockDuringFocus, it.mode, it.pauseSeconds, it.pauseAllowMin) },
             rules = repo.rules().map { RuleRow(it.listId, it.type, it.value, it.platform) },
             schedules = repo.schedules().map { ScheduleRow(it.listId, it.daysMask, it.startMinute, it.endMinute, it.strict, it.enabled) },
             quickBlockLists = repo.activeQuickBlocks().map { it.first }.toSet(),
@@ -37,7 +37,7 @@ class BlockResolver(private val repo: Repo, private val focus: FocusEngine, priv
             exceptions = repo.db.rows("SELECT value FROM exceptions WHERE type = 'app' AND until_at > ?", now) { it.getString(0) }.toSet(),
             limitExceeded = limitExceeded,
         )
-        return ActiveBlocks(result.packages, result.triggers, result.strict, result.triggerFor, result.listFor)
+        return ActiveBlocks(result.packages, result.triggers, result.strict, result.triggerFor, result.listFor, result.pauseLists)
     }
 
     /** Whether Monk Guard needs to watch the foreground right now. */
@@ -51,6 +51,14 @@ class GuardRules(private val repo: Repo, private val strict: StrictEngine) {
             strict.record(strict.active()?.id, "blocked_edit", what)
             throw FocusException("This list is locked while a strict session is active.")
         }
+    }
+
+    /** Switching a strict-protected list to Mindful pause would weaken it, so that is refused. */
+    fun setListMode(listId: String, mode: String, pauseSeconds: Int, pauseAllowMin: Int) {
+        require(mode == "block" || mode == "pause") { "Unknown mode" }
+        if (mode == "pause") guard(listId, "Tried to switch a list to Mindful pause")
+        repo.db.update("blocklists", app.monkmode.data.values("mode" to mode, "pause_seconds" to pauseSeconds.coerceIn(3, 60), "pause_allow_min" to pauseAllowMin.coerceIn(1, 30), "updated_at" to Repo.now()), "id = ?", arrayOf(listId))
+        repo.changed()
     }
 
     fun deleteRule(listId: String, ruleId: String) {

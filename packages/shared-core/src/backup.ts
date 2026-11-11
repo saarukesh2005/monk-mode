@@ -19,6 +19,7 @@ export const BACKUP_TABLES = [
   'strict_session_lists',
   'strict_events',
   'block_events',
+  'pause_events',
   'app_usage',
   'web_usage',
   'events',

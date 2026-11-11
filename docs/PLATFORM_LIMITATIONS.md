@@ -29,6 +29,7 @@ Status meanings:
 | Accessibility-service blocking | — | — | UNSUPPORTED (deliberately) |
 | Feed blocking inside native apps | UNSUPPORTED | UNSUPPORTED | UNSUPPORTED |
 | App usage statistics | SUPPORTED (while app runs) | SUPPORTED (while app runs) | REQUIRES_PERMISSION |
+| Mindful pause | Websites only (extension) | Websites only (extension) | Apps (shield screen) |
 | Start at login / after reboot | SUPPORTED | SUPPORTED | SUPPORTED |
 
 ## macOS
@@ -66,7 +67,8 @@ Status meanings:
   expected; MONK MODE only touches its own marked section.
 - Usage statistics are measured only while MONK MODE is running.
 - **Verification status:** the Windows build is compiled and unit-tested by GitHub Actions on
-  `windows-latest`; it has not yet been tested by hand on a real Windows PC. See TEST_REPORT.md.
+  `windows-latest` (passed), and its installers are built there; it has not yet been tested by
+  hand on a real Windows PC. See TEST_REPORT.md.
 
 ## Browser extension
 

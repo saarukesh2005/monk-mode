@@ -49,4 +49,13 @@ class ResolverTest {
         val plain = BackupCrypto.decrypt(File(dir, "backup-v1.monkbak").readBytes(), "monk-vector-passphrase").decodeToString()
         assertTrue(plain.contains("Cross-platform backup works"))
     }
+
+    @Test fun pauseListsAreReportedButNeverForStrictLists() {
+        val lists = listOf(ListRow("p", "block", enabled = true, blockDuringFocus = true, mode = "pause", pauseSeconds = 99, pauseAllowMin = 0))
+        val rules = listOf(RuleRow("p", "app", "com.reddit.frontpage", "all"))
+        fun run(strict: Set<String>) = BlockResolver.resolve(java.time.LocalDateTime.of(2026, 11, 9, 10, 0), 0, lists, rules, emptyList(), emptySet(), focusActive = strict.isEmpty(), strictLists = strict, exceptions = emptySet(), limitExceeded = emptySet())
+        val focus = run(emptySet())
+        org.junit.Assert.assertEquals(PauseCfg(60, 1), focus.pauseFor("com.reddit.frontpage"))
+        org.junit.Assert.assertNull(run(setOf("p")).pauseFor("com.reddit.frontpage"))
+    }
 }

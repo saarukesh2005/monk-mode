@@ -1,24 +1,24 @@
 # Installing MONK MODE on Windows 10 / 11
 
-> Status: the Windows build is compiled and unit-tested on GitHub's Windows runners. It has not
-> yet been tested by hand on a real PC. Please report anything that behaves differently from
-> this guide.
+> Status: the Windows build is compiled, unit-tested and packaged on GitHub's Windows runners.
+> It has not yet been tested by hand on a real PC. Please report anything that behaves
+> differently from this guide.
 
 ## Get the installer
 
-Choose one:
+From the [latest release](https://github.com/saarukesh2005/monk-mode/releases/latest):
 
-- **GitHub Actions:** run the *Desktop builds* workflow (Actions tab → Desktop builds → Run
-  workflow). Download the `monk-mode-x86_64-pc-windows-msvc` artifact. It contains:
-  - `MONK MODE_1.0.0_x64-setup.exe` — installer for your user account (no admin needed),
-  - `MONK MODE_1.0.0_x64_en-US.msi` — MSI installer,
-  - `MONK MODE portable.exe` — runs without installing (needs the WebView2 runtime, which is
-    built into Windows 11 and current Windows 10).
-- **Build it yourself on the PC** — see BUILD_GUIDE.md → Windows.
+- `MONK-MODE-<version>-Windows-Setup.exe` — **recommended**; installs for your user account
+  (no admin needed),
+- `MONK-MODE-<version>-Windows.msi` — MSI installer (for managed PCs),
+- `MONK-MODE-<version>-Windows-Portable.exe` — runs without installing (needs the WebView2
+  runtime, built into Windows 11 and current Windows 10).
+
+Or build it yourself on the PC — see BUILD_GUIDE.md → Windows.
 
 ## Install
 
-1. Run `MONK MODE_1.0.0_x64-setup.exe`.
+1. Run `MONK-MODE-<version>-Windows-Setup.exe`.
 2. The build is unsigned, so SmartScreen may say *"Windows protected your PC"*. Click
    **More info → Run anyway**.
 3. Follow the installer. MONK MODE installs for your user only and does not need administrator

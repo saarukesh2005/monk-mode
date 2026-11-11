@@ -96,7 +96,7 @@ pub fn settings_all(state: State<AppState>) -> Cmd<Map<String, Json>> {
         .collect())
 }
 
-const PROTECTED_IN_STRICT: &[&str] = &["hostsBlockingEnabled", "strictDailyLimitMin", "emergencyCooldownSec", "usageTracking"];
+const PROTECTED_IN_STRICT: &[&str] = &["hostsBlockingEnabled", "strictDailyLimitMin", "emergencyCooldownSec", "usageTracking", "requireExtensionInStrict"];
 
 #[tauri::command]
 pub fn settings_set(app: AppHandle, state: State<AppState>, key: String, value: Json) -> Cmd<()> {

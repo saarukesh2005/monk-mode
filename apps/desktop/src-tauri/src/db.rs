@@ -7,10 +7,10 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub const MIGRATIONS: &[(&str, &str)] = &[(
-    "0001_init.sql",
-    include_str!("../../../../packages/database/migrations/0001_init.sql"),
-)];
+pub const MIGRATIONS: &[(&str, &str)] = &[
+    ("0001_init.sql", include_str!("../../../../packages/database/migrations/0001_init.sql")),
+    ("0002_mindful_pause.sql", include_str!("../../../../packages/database/migrations/0002_mindful_pause.sql")),
+];
 
 pub const SCHEMA_VERSION: i64 = MIGRATIONS.len() as i64;
 

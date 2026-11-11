@@ -1,6 +1,9 @@
 // Minimal promise-based wrapper over chrome.* (Firefox MV3 provides the same API under `chrome`).
 export const ext = chrome;
 
+/** Browser family name reported to the desktop app (used for strict-mode extension checks). */
+export const browserName = (): string => (navigator.userAgent.includes('Firefox') ? 'Firefox' : navigator.userAgent.includes('Edg/') ? 'Edge' : 'Chromium');
+
 export async function getLocal<T>(key: string, fallback: T): Promise<T> {
   try {
     const r = await ext.storage.local.get(key);
@@ -33,7 +36,7 @@ export async function bridge<T>(settings: Settings, path: string, init: RequestI
     const res = await fetch(`http://127.0.0.1:${settings.port}${path}`, {
       ...init,
       signal: controller.signal,
-      headers: { 'Content-Type': 'application/json', 'X-Monk-Token': settings.token, ...(init.headers ?? {}) },
+      headers: { 'Content-Type': 'application/json', 'X-Monk-Token': settings.token, 'X-Monk-Browser': browserName(), ...(init.headers ?? {}) },
     });
     const body = (await res.json().catch(() => ({}))) as T & { error?: string };
     if (!res.ok) throw new Error(body.error ?? `Bridge error ${res.status}`);

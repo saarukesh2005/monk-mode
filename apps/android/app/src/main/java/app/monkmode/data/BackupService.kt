@@ -13,7 +13,7 @@ class BackupService(private val repo: Repo) {
         val TABLES = listOf(
             "categories", "subjects", "topics", "tasks", "tags", "task_tags", "focus_sessions", "blocklists",
             "block_rules", "schedules", "quick_blocks", "usage_limits", "exceptions", "strict_sessions",
-            "strict_session_lists", "strict_events", "block_events", "app_usage", "web_usage", "events",
+            "strict_session_lists", "strict_events", "block_events", "pause_events", "app_usage", "web_usage", "events",
             "daily_plans", "notifications", "settings",
         )
         val DEVICE_LOCAL = setOf("extensionToken", "hostsBlockingEnabled", "startOnLogin", "usageImportedUntil", "usageLastImportAt", "guardEnabled", "onboardingComplete")

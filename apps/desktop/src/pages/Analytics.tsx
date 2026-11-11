@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Download, Info } from 'lucide-react';
-import type { AppUsage, BlockEvent, BlockRule, MetricProvenance, WebUsage } from '@monk/shared-types';
+import type { AppUsage, BlockEvent, BlockRule, MetricProvenance, PauseEvent, WebUsage } from '@monk/shared-types';
 import { addDays, hostMatches, localDateKey, presetById, startOfMonth, startOfWeek, appMatches } from '@monk/shared-core';
 import { comparePeriods, dailySeries, distractionMs, focusByDay, focusStreak, heatmap, hourOfDayDistribution, summarizeFocus, toCsv, topApps, topDomains, usageByDay, weekdayDistribution } from '@monk/analytics';
 import type { PageProps } from '../App';
@@ -43,6 +43,7 @@ export default function Analytics(_: PageProps) {
   const web = useTable<WebUsage>('web_usage', { filters: [where('started_at', 'gte', since)], limit: 50_000 }, [today]);
   const blocks = useTable<BlockEvent>('block_events', { filters: [where('ts', 'gte', since)], limit: 50_000 }, [today]);
   const rules = useTable<BlockRule>('block_rules');
+  const pauses = useTable<PauseEvent>('pause_events', { filters: [where('ts', 'gte', since)], limit: 50_000 }, [today]);
 
   const { start, days } = period === 'day' ? { start: today, days: 1 } : period === 'week' ? { start: startOfWeek(today), days: 7 } : { start: startOfMonth(today), days: new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0).getDate() };
   const startMs = new Date(`${start}T00:00`).getTime();
@@ -78,10 +79,11 @@ export default function Analytics(_: PageProps) {
       isDistractingDomain,
       blockCount: blocks.data.filter((b) => b.ts >= startMs && b.ts < endMs).length,
       blockTop: Object.entries(blocks.data.filter((b) => b.ts >= startMs && b.ts < endMs).reduce<Record<string, number>>((a, b) => ({ ...a, [b.target]: (a[b.target] ?? 0) + 1 }), {})).sort((a, b) => b[1] - a[1]).slice(0, 5),
+      pauses: pauses.data.filter((p) => p.ts >= startMs && p.ts < endMs),
       hasUsage: apps.data.length > 0,
       hasWeb: web.data.length > 0,
     };
-  }, [sessions.data, apps.data, web.data, blocks.data, rules.data, start, days, startMs, endMs, today, period]);
+  }, [sessions.data, apps.data, web.data, blocks.data, rules.data, pauses.data, start, days, startMs, endMs, today, period]);
 
   const target = (period === 'day' ? settings.dailyTargetMin : period === 'week' ? settings.weeklyTargetMin : settings.weeklyTargetMin * (days / 7)) * 60_000;
   const delta = (c: { deltaPct: number | null }) => (c.deltaPct == null ? 'no earlier data' : `${c.deltaPct >= 0 ? '+' : ''}${Math.round(c.deltaPct * 100)}% vs previous ${period}`);
@@ -170,6 +172,31 @@ export default function Analytics(_: PageProps) {
               </ul>
             </Card>
           </div>
+
+          <Card title="Mindful pauses" action={<Prov p={r.pauses.length ? 'measured' : 'unavailable'} />}>
+            {r.pauses.length === 0 ? (
+              <p className="text-[12px] leading-relaxed text-ink-muted">Switch a blocklist to <span className="text-ink">Mindful pause</span> (Blocker page) to see how often a moment of breathing changes your mind.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-[220px_1fr]">
+                <div className="grid grid-cols-2 gap-4">
+                  <Stat label="Pauses" value={r.pauses.length} />
+                  <Stat label="Turned back" value={fmtPct(r.pauses.filter((p) => p.outcome === 'turned_back').length / r.pauses.length)} tone="accent" />
+                </div>
+                <ul className="space-y-1.5">
+                  {r.pauses
+                    .filter((p) => p.outcome === 'continued' && p.intention)
+                    .slice(-6)
+                    .reverse()
+                    .map((p) => (
+                      <li key={p.id} className="flex justify-between gap-4 text-[12px]">
+                        <span className="truncate text-ink">“{p.intention}”</span>
+                        <span className="shrink-0 text-ink-faint">{p.target}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
+          </Card>
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1fr]">
             <Card title={`Trend · last ${period === 'month' ? 30 : 14} days`} action={<Prov p="recorded" />}>

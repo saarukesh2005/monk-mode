@@ -1,6 +1,6 @@
 # Test report
 
-Date: 11 November 2026 · Version 1.0.0 · Machine: MacBook Air M4, macOS 26.7.1
+Date: 11 November 2026 · Version 1.1.0 · Machine: MacBook Air M4, macOS 26.7.1
 
 Only tests that were actually run are listed. Nothing here is estimated.
 
@@ -8,10 +8,10 @@ Only tests that were actually run are listed. Nothing here is estimated.
 
 | Suite | Command | Result |
 |---|---|---|
-| Shared TypeScript packages, extension engine | `npx vitest run` | **120 passed**, 0 failed (8 files) |
+| Shared TypeScript packages, extension engine | `npx vitest run` | **123 passed**, 0 failed (8 files) |
 | Typecheck: shared packages, desktop UI, extension | `npx tsc -p …` ×3 | **0 errors** |
-| Desktop core (Rust) | `cargo test --lib` in `apps/desktop/src-tauri` | **45 passed**, 0 failed, 1 ignored (fixture generator) |
-| Android core (Kotlin, JVM) | `./gradlew test` in `apps/android` | **16 passed**, 0 failed |
+| Desktop core (Rust) | `cargo test --lib` in `apps/desktop/src-tauri` | **48 passed**, 0 failed, 1 ignored (fixture generator) |
+| Android core (Kotlin, JVM) | `./gradlew test` in `apps/android` | **17 passed**, 0 failed |
 
 ### What the automated tests cover
 
@@ -41,6 +41,18 @@ Only tests that were actually run are listed. Nothing here is estimated.
   (including formula injection); no completion rate is shown without data.
 - **Design tokens:** every theme and accent meets WCAG AA contrast.
 
+## Continuous integration (GitHub Actions, run on 11 November 2026 for v1.0.0)
+
+| Workflow | Runners | Result |
+|---|---|---|
+| CI — typecheck, vitest, extension build | ubuntu-latest | Passed |
+| CI — Rust tests | **macos-latest and windows-latest** | Passed (first real Windows compile + test run) |
+| Desktop builds | macOS arm64, macOS x64, Windows x64 | Passed — .dmg ×2, .exe, .msi, portable .exe produced |
+| Android | ubuntu-latest | Failed at the SDK setup step (third-party action); step removed for v1.1.0 |
+
+v1.1.0 adds tests for Mindful pause (TypeScript, Rust, Kotlin), pause-event ingestion and
+browser-family checks (Rust), and strict-mode browser enforcement decisions (Rust).
+
 ## Builds
 
 | Artifact | Built on | Result |
@@ -48,7 +60,7 @@ Only tests that were actually run are listed. Nothing here is estimated.
 | macOS `MONK MODE.app` + `MONK MODE_1.0.0_aarch64.dmg` | This Mac | Built, no warnings |
 | Chromium + Firefox extension zips | This Mac | Built |
 | Android debug APK, unsigned release APK (R8-minified), release AAB | This Mac | Built |
-| Windows `.exe` / `.msi`, macOS Intel `.dmg` | GitHub Actions (`Desktop builds`) | **Not yet run** — workflow written, needs a push to GitHub |
+| Windows `.exe` / `.msi` / portable, macOS Intel `.dmg` | GitHub Actions (`Desktop builds`) | Built successfully |
 
 ## Manual checks done on the real macOS app
 
@@ -66,11 +78,13 @@ Only tests that were actually run are listed. Nothing here is estimated.
 
 ## Not tested yet (needs your hardware or accounts)
 
-- **Windows:** nothing run by hand on a Windows PC. CI compiles and runs the Rust tests on
-  `windows-latest` once the repository is pushed to GitHub.
+- **Windows:** nothing run by hand on a Windows PC (CI compiled, tested and packaged it).
 - **Android:** not installed on a phone or emulator. Permission screens, the shield, the
   foreground service, boot restore and usage import have not been exercised on a device.
-- **Browser extensions:** built and unit-tested, not yet loaded into a real browser.
+- **Browser extensions:** built and unit-tested, not yet loaded into a real browser (this includes
+  the new pause page).
+- **Mindful pause and "Require the browser extension"** are unit-tested but not yet exercised in
+  the running apps.
 - **macOS UI:** not visually inspected by the automated session (the terminal lacks Screen
   Recording permission). Strict sessions and hosts-file editing were not exercised in the real
   app (they would have interrupted your session or asked for your password).

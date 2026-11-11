@@ -36,6 +36,7 @@ import java.util.Locale
 private data class Insights(
     val sessions: List<Session>, val byDay: Map<LocalDate, Long>, val topApps: List<UsageTotal>, val screenMs: Long,
     val usageAccess: Boolean, val blocks: List<BlockEvent>, val strictEvents: List<StrictEvent>, val target: Int,
+    val pauses: app.monkmode.data.PauseStats,
 )
 
 private enum class Range(val label: String, val days: Long) { TODAY("Today", 1), WEEK("7 days", 7), MONTH("30 days", 30) }
@@ -54,6 +55,7 @@ fun InsightsScreen(onSettings: () -> Unit) {
         Insights(
             all, focusByDay(all), m.repo.topApps(startOfDayMs(from)), m.repo.screenTimeMs(startOfDayMs(from)), m.usage.hasAccess(),
             m.repo.blockEvents(500), m.repo.strictEvents(100), m.repo.int("dailyTargetMin", 120),
+            m.repo.pauseStats(startOfDayMs(from)),
         )
     }
     Screen("Insights", "Computed on this phone from data it recorded.", onSettings) {
@@ -109,6 +111,18 @@ fun InsightsScreen(onSettings: () -> Unit) {
                 Text("${blocked.size}", style = MaterialTheme.typography.headlineMedium)
                 blocked.groupingBy { it.target }.eachCount().entries.sortedByDescending { it.value }.take(5).forEach { (t, n) ->
                     Text("$t · $n×", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        item {
+            MonkCard(title = "Mindful pauses · measured") {
+                if (x.pauses.total == 0) {
+                    Text("Switch a list to Mindful pause (Guard tab) to see how often a breath changes your mind.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Stat("Pauses", "${x.pauses.total}")
+                        Stat("Turned back", "${x.pauses.turnedBack * 100 / x.pauses.total}%", accent = true)
+                    }
                 }
             }
         }

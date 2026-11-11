@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { ActiveBlockSet } from '@monk/shared-types';
-import { buildDnrRules, decide, domainOf, effectiveBlockSet, patternToUrlFilter, switchUsage, STALE_AFTER_MS, type CachedState } from '../src/engine';
+import { buildDnrRules, decide, domainOf, effectiveBlockSet, patternToUrlFilter, switchUsage, verdict, STALE_AFTER_MS, type CachedState } from '../src/engine';
 
-const set = (over: Partial<ActiveBlockSet> = {}): ActiveBlockSet => ({ computedAt: 0, active: true, strict: false, triggers: ['focus'], apps: [], domains: ['reddit.com'], urlPatterns: ['youtube.com/shorts*', 'reddit.com/'], allowDomains: [], allowApps: [], sourceList: {}, ...over });
+const set = (over: Partial<ActiveBlockSet> = {}): ActiveBlockSet => ({ computedAt: 0, active: true, strict: false, triggers: ['focus'], apps: [], domains: ['reddit.com'], urlPatterns: ['youtube.com/shorts*', 'reddit.com/'], allowDomains: [], allowApps: [], sourceList: {}, pauseLists: {}, ...over });
 
 const monday10 = new Date(2026, 10, 9, 10, 0).getTime();
 const cache = (syncedAt: number, over: Partial<CachedState['state']> = {}): CachedState => ({
@@ -66,6 +66,23 @@ describe('extension engine', () => {
     const s = effectiveBlockSet(cache(monday10), monday10, [{ domain: 'reddit.com', untilAt: monday10 + 60_000 }, { domain: 'old.com', untilAt: monday10 - 1 }]);
     expect(s?.allowDomains).toEqual(['reddit.com']);
     expect(decide('https://reddit.com/r/x', s).blocked).toBe(false);
+  });
+
+  it('pauses targets from pause-mode lists instead of hard-blocking them', () => {
+    const s = set({ sourceList: { 'reddit.com': 'p', 'youtube.com/shorts*': 'b' }, pauseLists: { p: { seconds: 12, allowMin: 4 } } });
+    expect(verdict('https://www.reddit.com/r/x', s)).toEqual({ kind: 'pause', matched: 'reddit.com', seconds: 12, allowMin: 4 });
+    expect(verdict('https://youtube.com/shorts/1', s)).toEqual({ kind: 'block', matched: 'youtube.com/shorts*' });
+    expect(verdict('https://example.com', s)).toEqual({ kind: 'allow' });
+    // DNR hard-blocks only the non-pause targets.
+    const rules = buildDnrRules(s);
+    expect(rules.some((r) => r.condition.requestDomains?.includes('reddit.com'))).toBe(false);
+    expect(rules.some((r) => r.condition.urlFilter === '||youtube.com/shorts')).toBe(true);
+  });
+
+  it('tolerates block sets from older desktop versions without pauseLists', () => {
+    const legacy = cache(monday10);
+    delete (legacy.state.blockSet as Partial<ActiveBlockSet>).pauseLists;
+    expect(effectiveBlockSet(legacy, monday10, [])?.pauseLists).toEqual({});
   });
 
   it('measures active-tab intervals', () => {

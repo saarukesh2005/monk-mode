@@ -1,6 +1,6 @@
 # Feature status
 
-Version 1.0.0 · 11 November 2026.
+Version 1.1.0 · 11 November 2026.
 
 **Status words:** **Done** = implemented and covered by automated tests or a real-app check.
 **Built** = implemented and compiles, but not yet exercised on that platform's real device.
@@ -12,8 +12,8 @@ A screen existing is never counted as "Done" on its own.
 | Platform | Status |
 |---|---|
 | macOS app (Apple Silicon) | **Done** — built `.app`/`.dmg`, launched, bridge and quit behaviour checked, running your real session |
-| macOS app (Intel) | **Built** in CI workflow only (not yet run) |
-| Windows app | **Code complete, not yet compiled** — the CI workflow builds and tests it on Windows once the repository is on GitHub, or build it on the PC (BUILD_GUIDE.md) |
+| macOS app (Intel) | **Built** on GitHub's macOS runners; not yet run on an Intel Mac |
+| Windows app | **Built** — compiled, unit-tested and packaged (.exe, .msi, portable) on GitHub's Windows runners; not yet run by hand on a PC |
 | Android app | **Built** — debug/release APK and AAB; not yet run on a device |
 | Chromium / Firefox extension | **Built** — packaged and unit-tested; not yet loaded in a browser |
 
@@ -37,6 +37,8 @@ A screen existing is never counted as "Done" on its own.
 | Quick block | Done | Built | |
 | Daily usage limits | Done | Partial | Android enforces limits but has no screen to create them yet (restore from desktop backup) |
 | Temporary exceptions | Done | Built | Android: "Allow 5 min" on the shield |
+| Mindful pause (breathing pause + intention, outcome stats) | Built (extension) | Built | Desktop apps cannot be paused; unit-tested in TS, Rust, Kotlin |
+| Require extension during strict sessions | Built | — | Opt-in; unit-tested decision logic |
 | Strict mode (3 levels, cool-down, phrase, tamper log, daily limit) | Done | Built | |
 | Hosts-file system-wide blocking | Built | — | Needs your admin password; not exercised in the real app |
 | Screen Time / FamilyControls | Not done | — | Needs Apple entitlement |
@@ -63,7 +65,7 @@ A screen existing is never counted as "Done" on its own.
 | Requirement | Status |
 |---|---|
 | Complete macOS application exists | Yes |
-| Complete Windows application exists | Code complete; installer produced by CI, not yet run |
+| Complete Windows application exists | Yes — built and unit-tested on Windows by CI; not yet run by hand |
 | Complete Android application exists | Yes (built), see partial items above; not yet run on a device |
 | Consistent identity | Yes — same logo, palette, names |
 | Local databases work | Yes (desktop verified; Android built) |
@@ -76,8 +78,8 @@ A screen existing is never counted as "Done" on its own.
 | Browser extensions built | Yes |
 | Backup and restore | Yes |
 | No cloud or login dependency | Yes |
-| Automated tests pass where executable | Yes — 120 TS, 45 Rust, 16 Kotlin |
-| Installable artifacts | macOS dmg, Android APK/AAB, extension zips; Windows via CI |
-| CI workflows | Yes — `.github/workflows/` (not yet run: repository not on GitHub) |
+| Automated tests pass where executable | Yes — 123 TS, 48 Rust, 17 Kotlin (local); TS + Rust on macOS and Windows in CI |
+| Installable artifacts | GitHub Release: macOS (Apple Silicon + Intel) dmg, Windows exe/msi/portable, Android APK, extension zips |
+| CI workflows | Yes — CI and Desktop builds passed on GitHub |
 | Documentation | Yes — `docs/` |
 | Known limitations documented | Yes — PLATFORM_LIMITATIONS.md, KNOWN_ISSUES.md |

@@ -1,7 +1,7 @@
 {
   "name": "monk-mode",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MONK MODE — Discipline is a system. Offline focus, blocking and planning for macOS, Windows and Android.",
   "license": "MIT",
   "workspaces": [

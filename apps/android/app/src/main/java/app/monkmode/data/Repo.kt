@@ -151,6 +151,16 @@ class Repo private constructor(context: Context) {
         changed()
     }
 
+    fun recordPause(target: String, listId: String?, outcome: String, intention: String) {
+        require(outcome == "turned_back" || outcome == "continued") { "Unknown outcome" }
+        db.insert("pause_events", null, values("id" to MonkDatabase.newId(), "ts" to now(), "platform" to "android", "target" to target.take(200), "list_id" to listId, "outcome" to outcome, "intention" to intention.filterNot(Char::isISOControl).take(200)))
+        changed()
+    }
+
+    fun pauseStats(since: Long): PauseStats = db.rows("SELECT COUNT(*) AS n, COALESCE(SUM(outcome = 'turned_back'), 0) AS back FROM pause_events WHERE ts >= ?", since) {
+        PauseStats(it.getInt(0), it.getInt(1))
+    }.first()
+
     fun blockEvents(limit: Int = 300): List<BlockEvent> =
         db.rows("SELECT * FROM block_events ORDER BY ts DESC LIMIT $limit") { BlockEvent(it.str("id"), it.long("ts"), it.str("target"), it.str("action"), it.str("trigger")) }
 

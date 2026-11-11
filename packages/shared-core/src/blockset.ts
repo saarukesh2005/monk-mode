@@ -54,9 +54,15 @@ export function resolveActiveBlockSet(input: BlockInputs): ActiveBlockSet {
   const patterns = new Set<string>();
   const sourceList: Record<string, string> = {};
   const strictTargets = new Set<string>();
+  const pauseLists: ActiveBlockSet['pauseLists'] = {};
 
   for (const [listId, triggers] of triggersByList) {
     const isStrict = triggers.has('strict');
+    const list = input.lists.find((l) => l.id === listId);
+    // Mindful pause never applies to strict-enforced lists: a commitment always hard-blocks.
+    if (list?.mode === 'pause' && !isStrict) {
+      pauseLists[listId] = { seconds: clampInt(list.pauseSeconds ?? 10, 3, 60), allowMin: clampInt(list.pauseAllowMin ?? 5, 1, 30) };
+    }
     for (const rule of input.rules) {
       if (rule.listId !== listId || !appliesTo(rule, input.platform)) continue;
       const push = (set: Set<string>, value: string): void => {
@@ -109,5 +115,16 @@ export function resolveActiveBlockSet(input: BlockInputs): ActiveBlockSet {
     allowDomains: [...allowDomains].sort(),
     allowApps: [...allowApps].sort(),
     sourceList,
+    pauseLists,
   };
+}
+
+const clampInt = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, Math.round(v)));
+
+/** The pause settings that apply to a blocked target, or null when it must be hard-blocked. */
+export function pauseFor(set: ActiveBlockSet, matched: string | null): { listId: string; seconds: number; allowMin: number } | null {
+  if (!matched) return null;
+  const listId = set.sourceList[matched];
+  const p = listId ? set.pauseLists?.[listId] : undefined;
+  return listId && p ? { listId, ...p } : null;
 }

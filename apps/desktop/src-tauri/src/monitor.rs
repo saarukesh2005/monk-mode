@@ -4,6 +4,7 @@
 //! 3. samples the frontmost application for usage statistics (idle time excluded),
 //! 4. records tamper signals (monitor gaps, wall-clock jumps) during strict sessions.
 
+use crate::bridge::Heartbeats;
 use crate::db::{new_id, now_ms, Db};
 use crate::platform::{self, Foreground, ProcessMonitor};
 use crate::rules::{self, ActiveBlockSet};
@@ -23,6 +24,17 @@ const KILL_GRACE: Duration = Duration::from_secs(3);
 const EVENT_DEBOUNCE_MS: i64 = 30_000;
 const HEARTBEAT_MS: i64 = 15_000;
 const CLOCK_JUMP_MS: i64 = 120_000;
+/// Extension sync runs every 30 s; a browser is "unprotected" after missing three syncs.
+const EXTENSION_STALE_MS: i64 = 90_000;
+
+/// Whether a browser of `family` must be closed: strict session older than the grace period and
+/// no recent sync from that family's extension. Pure function for testing.
+pub fn browser_unprotected(family: &str, heartbeats: &HashMap<String, i64>, strict_started_at: i64, now: i64) -> bool {
+    if now - strict_started_at < EXTENSION_STALE_MS {
+        return false;
+    }
+    heartbeats.get(family).is_none_or(|t| now - t > EXTENSION_STALE_MS)
+}
 
 /// Callbacks into the UI layer (Tauri events + notifications), injected by lib.rs.
 pub trait Notifier: Send + Sync {
@@ -103,6 +115,7 @@ pub struct Monitor {
     pub data_dir: PathBuf,
     pub block_set: Arc<Mutex<ActiveBlockSet>>,
     pub notifier: Arc<dyn Notifier>,
+    pub heartbeats: Heartbeats,
     procs: ProcessMonitor,
     usage: UsageTracker,
     pending_kills: HashMap<Pid, (Instant, String)>,
@@ -113,12 +126,13 @@ pub struct Monitor {
 }
 
 impl Monitor {
-    pub fn new(db: Db, data_dir: PathBuf, block_set: Arc<Mutex<ActiveBlockSet>>, notifier: Arc<dyn Notifier>) -> Self {
+    pub fn new(db: Db, data_dir: PathBuf, block_set: Arc<Mutex<ActiveBlockSet>>, notifier: Arc<dyn Notifier>, heartbeats: Heartbeats) -> Self {
         Self {
             db,
             data_dir,
             block_set,
             notifier,
+            heartbeats,
             procs: ProcessMonitor::new(),
             usage: UsageTracker::default(),
             pending_kills: HashMap::new(),
@@ -192,9 +206,14 @@ impl Monitor {
         }
 
         let track_usage = settings::flag(&conn, "usageTracking", true);
+        let require_extension = settings::flag(&conn, "requireExtensionInStrict", false);
+        let strict_session = strict::active(&conn)?.filter(|s| s.level != "normal" && s.state == "ACTIVE");
         drop(conn);
 
         self.enforce_apps(&set, now)?;
+        if let (true, Some(s)) = (require_extension, strict_session) {
+            self.enforce_browsers(&s.id, s.started_at, now)?;
+        }
         if track_usage {
             let fg = if platform::idle_seconds() >= IDLE_CUTOFF_SEC { None } else { platform::foreground(&self.procs) };
             let conn = self.db.conn();
@@ -241,6 +260,30 @@ impl Monitor {
             if self.procs.terminate(pid) {
                 self.pending_kills.insert(pid, (Instant::now(), rule.clone()));
                 self.record_block(&rule, &display, set, now)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Closes browsers whose MONK MODE extension is not syncing during a strict session
+    /// (opt-in setting). Mirrors the "extension removed during a locked block" safeguard.
+    fn enforce_browsers(&mut self, session_id: &str, started_at: i64, now: i64) -> crate::error::AppResult<()> {
+        let beats = self.heartbeats.lock().map(|h| h.clone()).unwrap_or_default();
+        for (pid, name, family) in self.procs.running_browsers() {
+            if self.pending_kills.contains_key(&pid) || !browser_unprotected(family, &beats, started_at, now) {
+                continue;
+            }
+            if self.procs.terminate(pid) {
+                self.pending_kills.insert(pid, (Instant::now(), name.clone()));
+                let key = format!("browser:{name}");
+                if self.last_event.get(&key).is_some_and(|t| now - t < EVENT_DEBOUNCE_MS) {
+                    continue;
+                }
+                self.last_event.insert(key, now);
+                let conn = self.db.conn();
+                strict::record_event(&conn, Some(session_id), "extension_missing", &format!("Closed {name}: the MONK MODE extension was not active"))?;
+                drop(conn);
+                self.notifier.notify("strict", &format!("{name} was closed"), "During this commitment, browsers need the MONK MODE extension. Re-enable it, then reopen the browser.");
             }
         }
         Ok(())
@@ -340,6 +383,19 @@ mod tests {
         t.close(&c).unwrap();
         drop(c);
         assert_eq!(rows(&db), vec![("Code".into(), 3000), ("Safari".into(), 0), ("Safari".into(), 0), ("Safari".into(), 0)]);
+    }
+
+    #[test]
+    fn browsers_need_a_recent_extension_sync_after_the_grace_period() {
+        let mut hb = HashMap::new();
+        hb.insert("chromium".to_string(), 1_000_000);
+        // Within the grace period after the commitment starts: never close.
+        assert!(!browser_unprotected("firefox", &hb, 1_000_000, 1_050_000));
+        // Afterwards: a family without any sync is unprotected; a fresh sync protects.
+        assert!(browser_unprotected("firefox", &hb, 900_000, 1_050_000));
+        assert!(!browser_unprotected("chromium", &hb, 900_000, 1_050_000));
+        assert!(browser_unprotected("chromium", &hb, 900_000, 1_200_000));
+        assert!(browser_unprotected("safari", &hb, 0, 1_000_000));
     }
 
     #[test]

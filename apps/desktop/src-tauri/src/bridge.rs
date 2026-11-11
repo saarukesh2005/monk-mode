@@ -12,6 +12,7 @@ use crate::{focus, settings, strict};
 use rusqlite::params;
 use serde::Deserialize;
 use serde_json::{json, Value as Json};
+use std::collections::HashMap;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
 use tiny_http::{Header, Method, Request, Response, Server};
@@ -21,10 +22,24 @@ const MAX_BODY: u64 = 256 * 1024;
 const MAX_USAGE_RECORD_MS: i64 = 60 * 60 * 1000;
 const MAX_EXCEPTION_MIN: i64 = 30;
 
+/// Browser family ("chromium", "edge", "firefox") → last time its extension synced.
+pub type Heartbeats = Arc<Mutex<HashMap<String, i64>>>;
+
 pub struct BridgeState {
     pub db: Db,
     pub block_set: Arc<Mutex<ActiveBlockSet>>,
+    pub heartbeats: Heartbeats,
     pub on_change: Box<dyn Fn(&str) + Send + Sync>,
+}
+
+/// Maps the extension's self-reported browser name to a family used for enforcement checks.
+pub fn browser_family(name: &str) -> Option<&'static str> {
+    match name.to_ascii_lowercase().as_str() {
+        "chromium" | "chrome" | "brave" => Some("chromium"),
+        "edge" => Some("edge"),
+        "firefox" => Some("firefox"),
+        _ => None,
+    }
 }
 
 fn allowed_origin(req: &Request) -> Option<String> {
@@ -106,8 +121,16 @@ fn handle(state: &BridgeState, mut req: Request) {
     if req.method() == &Method::Post && req.as_reader().take(MAX_BODY).read_to_string(&mut body).is_err() {
         return respond(req, 400, json!({ "error": "Unreadable body" }));
     }
+    let browser = req.headers().iter().find(|h| h.field.equiv("X-Monk-Browser")).map(|h| h.value.as_str().to_string());
     let result = match (req.method(), url.as_str()) {
-        (Method::Get, "/v1/state") => state_json(state),
+        (Method::Get, "/v1/state") => {
+            if let Some(family) = browser.as_deref().and_then(browser_family) {
+                if let Ok(mut hb) = state.heartbeats.lock() {
+                    hb.insert(family.to_string(), now_ms());
+                }
+            }
+            state_json(state)
+        }
         (Method::Post, "/v1/events") => ingest(state, &body),
         (Method::Post, "/v1/exception") => exception(state, &body),
         _ => return respond(req, 404, json!({ "error": "Not found" })),
@@ -157,9 +180,21 @@ struct UsageReport {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct PauseReport {
+    ts: i64,
+    domain: String,
+    outcome: String,
+    #[serde(default)]
+    intention: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct Events {
     #[serde(default)]
     blocks: Vec<BlockReport>,
+    #[serde(default)]
+    pauses: Vec<PauseReport>,
     #[serde(default)]
     usage: Vec<UsageReport>,
     #[serde(default)]
@@ -202,15 +237,32 @@ fn ingest(state: &BridgeState, body: &str) -> AppResult<(u16, Json)> {
         )?;
         nu += 1;
     }
+    let mut np = 0;
+    for p in ev.pauses.iter().take(500) {
+        let Some(domain) = normalize_domain(&p.domain) else { continue };
+        if !matches!(p.outcome.as_str(), "turned_back" | "continued") || p.ts > now + 60_000 || p.ts < now - 7 * 86_400_000 {
+            continue;
+        }
+        let intention: String = p.intention.chars().filter(|c| !c.is_control()).take(200).collect();
+        let list = block_set.domains.iter().chain(block_set.url_patterns.iter()).find(|d| host_matches(&domain, d.split('/').next().unwrap_or(d))).and_then(|d| block_set.source_list.get(d)).cloned();
+        tx.execute(
+            "INSERT INTO pause_events (id, ts, platform, target, list_id, outcome, intention) VALUES (?1, ?2, 'browser', ?3, (SELECT id FROM blocklists WHERE id = ?4), ?5, ?6)",
+            params![new_id(), p.ts, domain, list, p.outcome, intention],
+        )?;
+        np += 1;
+    }
     tx.commit()?;
     drop(conn);
+    if np > 0 {
+        (state.on_change)("pause_events");
+    }
     if nb > 0 {
         (state.on_change)("block_events");
     }
     if nu > 0 {
         (state.on_change)("web_usage");
     }
-    Ok((200, json!({ "blocks": nb, "usage": nu })))
+    Ok((200, json!({ "blocks": nb, "usage": nu, "pauses": np })))
 }
 
 #[derive(Deserialize)]
@@ -250,6 +302,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn maps_browser_families() {
+        assert_eq!(browser_family("Chromium"), Some("chromium"));
+        assert_eq!(browser_family("Edge"), Some("edge"));
+        assert_eq!(browser_family("Firefox"), Some("firefox"));
+        assert_eq!(browser_family("Netscape"), None);
+    }
+
+    #[test]
     fn constant_time_compare() {
         assert!(constant_time_eq(b"abc", b"abc"));
         assert!(!constant_time_eq(b"abc", b"abd"));
@@ -257,7 +317,7 @@ mod tests {
     }
 
     fn state() -> BridgeState {
-        BridgeState { db: Db::open_in_memory().unwrap(), block_set: Arc::new(Mutex::new(ActiveBlockSet::default())), on_change: Box::new(|_| {}) }
+        BridgeState { db: Db::open_in_memory().unwrap(), block_set: Arc::new(Mutex::new(ActiveBlockSet::default())), heartbeats: Heartbeats::default(), on_change: Box::new(|_| {}) }
     }
 
     #[test]
@@ -267,6 +327,10 @@ mod tests {
         let body = json!({
             "browser": "Chrome<script>",
             "blocks": [{ "ts": now, "domain": "www.reddit.com", "trigger": "focus" }, { "ts": now, "domain": "bad domain" }],
+            "pauses": [
+                { "ts": now, "domain": "youtube.com", "outcome": "turned_back", "intention": "check a lecture\u{7}" },
+                { "ts": now, "domain": "youtube.com", "outcome": "hacked" }
+            ],
             "usage": [
                 { "domain": "github.com", "startedAt": now - 60_000, "endedAt": now },
                 { "domain": "x.com", "startedAt": now, "endedAt": now - 1 },
@@ -275,7 +339,9 @@ mod tests {
         });
         let (status, v) = ingest(&s, &body.to_string()).unwrap();
         assert_eq!(status, 200);
-        assert_eq!(v, json!({ "blocks": 1, "usage": 1 }));
+        assert_eq!(v, json!({ "blocks": 1, "usage": 1, "pauses": 1 }));
+        let intention: String = s.db.conn().query_row("SELECT intention FROM pause_events", [], |r| r.get(0)).unwrap();
+        assert_eq!(intention, "check a lecture");
         let browser: String = s.db.conn().query_row("SELECT browser FROM web_usage", [], |r| r.get(0)).unwrap();
         assert_eq!(browser, "Chromescript");
     }

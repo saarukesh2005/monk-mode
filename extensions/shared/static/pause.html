@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>A moment · MONK MODE</title><link rel="stylesheet" href="style.css"></head>
+<body class="blocked">
+  <main>
+    <svg class="mark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M35 16.4A15.75 15.75 0 1 1 27.3 16.8" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="32" cy="32" r="3.5" fill="currentColor"/></svg>
+    <h1>Before you open <span id="site">this site</span></h1>
+    <div class="breath" aria-hidden="true"><div class="orb"></div><span id="count"></span></div>
+    <p class="muted" id="phase" aria-live="polite">Breathe in…</p>
+    <label for="intention" class="muted" style="display:block;margin-top:20px;font-size:13px">What do you want to do there?</label>
+    <input type="text" id="intention" maxlength="200" placeholder="e.g. reply to one message" style="margin-top:8px">
+    <div class="row" style="justify-content:center;margin-top:16px">
+      <button class="primary" id="back">I'll go back</button>
+      <button id="continue" disabled>Continue</button>
+    </div>
+    <p class="err" id="error" style="font-size:12px"></p>
+  </main>
+  <script src="pause.js" type="module"></script>
+</body>
+</html>

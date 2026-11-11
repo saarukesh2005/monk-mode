@@ -1,6 +1,6 @@
 # Known issues
 
-Last updated: 10 November 2026, version 1.0.0.
+Last updated: 11 November 2026, version 1.1.0.
 
 ## All platforms
 
@@ -15,13 +15,15 @@ Last updated: 10 November 2026, version 1.0.0.
 - Phase-end notifications only appear while MONK MODE (or its menu-bar icon) is running. If the
   app is fully quit, the timer still finishes at the right moment and is recorded the next time
   it starts, but no notification is shown at that moment.
-- Apple Silicon build only from local builds; the Intel (x86_64) build is produced by GitHub
-  Actions and has not been tested on an Intel Mac.
+- The Intel (x86_64) build is produced by GitHub Actions and has not been tested on an Intel Mac.
+- Mindful pause does not apply to desktop apps (a native launch cannot be paused); they are closed.
+- "Require the browser extension" treats Chrome, Brave, Vivaldi, Opera and Arc as one family:
+  if the extension is active in one of them, the others are not closed.
 - Safari is not covered by the website extension.
 
 ## Windows
 
-- Not yet tested by hand on a real Windows PC (only compiled and unit-tested in CI).
+- Not yet tested by hand on a real Windows PC (compiled, unit-tested and packaged in CI).
 - Apps started "as administrator" cannot be closed by Monk Guard.
 - Some antivirus software warns when the hosts file is changed.
 
